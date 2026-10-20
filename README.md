@@ -114,7 +114,7 @@ MVTec/
 > 是 **Flax/JAX** 权重（键只有 params/batch_stats），torchvision 只命中 53/320，别用。
 
 ```powershell
-cd "E:\APP\DeepSeek Harness\DeepSeek\patchcore-demo"
+cd patchcore-demo
 
 # ① 冒烟测试：每类 10 张，确认跑得通（1 分钟）
 python patchcore_demo.py --data D:/MVTec --category bottle --limit 10
@@ -347,26 +347,6 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 
 ---
 
-## 6.5 跑完自动写进简历（已接好）
-
-`E:\APP\DeepSeek Harness\DeepSeek\build_resume_docx.py` 会自动读取
-`patchcore-demo/results/results.csv`：**文件存在 → 简历里自动多出「【工业质检】MVTec AD 少样本无监督缺陷检测（PatchCore）」这一节，数字全部来自 CSV；文件不存在 → 自动不显示。**
-
-所以流程是：
-
-```powershell
-# 1) 跑出真实结果（会在 patchcore-demo/results/ 下生成 results.csv）
-python patchcore_demo.py --data D:/MVTec --category all
-
-# 2) 重新生成简历（自动带上这一节）
-& "E:\APP\dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe" "E:\APP\DeepSeek Harness\DeepSeek\build_resume_docx.py"
-```
-
-重新生成时若从 1 页溢到 2 页，把「Halcon 对照」那条删掉或把 `--limit` 结果改成只跑 2~3 个类别即可。
-`_smoke_test_syn/`、`_smoke/`、`_wtest/` 是合成/冒烟产物，**不会被读取**，可以删。
-
-> 当前状态：`results/results.csv` 已是真实 15 类结果，简历 PDF 已重建并验证 **PAGES=1**（2026-10-20）。
-
 ## 7. 三天计划
 
 | 天 | 做什么 | 产出 |
@@ -384,3 +364,9 @@ python patchcore_demo.py --data D:/MVTec --category all
 ---
 
 有问题把 traceback 贴给我，我按报错改脚本。
+
+---
+
+## 许可
+
+MIT License, see [LICENSE](LICENSE). 第三方：PyTorch / torchvision（BSD-3-Clause）、MVTec AD 数据集（CC BY-NC-SA 4.0，仅限非商业研究）。
