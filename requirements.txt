@@ -1,0 +1,8 @@
+# PatchCore demo 依赖（不含 anomalib，全部自己实现）
+torch>=2.0
+torchvision>=0.15
+numpy>=1.24
+pillow>=9.5
+
+# 可选：只想看曲线图时用（脚本本身不依赖）
+# matplotlib>=3.7

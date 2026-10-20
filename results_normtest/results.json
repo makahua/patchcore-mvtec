@@ -1,0 +1,18 @@
+[
+  {
+    "category": "screw",
+    "n_train": 224,
+    "n_calib": 96,
+    "n_test": 160,
+    "mem_patches": 2000,
+    "img_auroc": 0.8674,
+    "pixel_auroc": 0.9747,
+    "threshold": 42.7571,
+    "recall_at_thr": 0.4538,
+    "false_positive_rate": 0.0,
+    "latency_ms": 12.63,
+    "latency_p95_ms": 16.0,
+    "build_seconds": 144.7,
+    "peak_gpu_mb": 166.7
+  }
+]

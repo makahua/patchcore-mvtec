@@ -1,0 +1,2 @@
+﻿category,n_train,n_calib,n_test,mem_patches,img_auroc,pixel_auroc,threshold,recall_at_thr,false_positive_rate,latency_ms,latency_p95_ms,build_seconds,peak_gpu_mb
+grid,185,79,78,18944,0.919,0.9537,94.7287,0.7719,0.1429,360.34,392.51,68.7,2353.2
