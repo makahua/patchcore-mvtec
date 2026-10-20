@@ -3,9 +3,9 @@
 给机器视觉/工业质检岗准备的一个**能跑出真实数字**的项目。
 不依赖 anomalib，只靠 torch + torchvision；核心就是 PatchCore：预训练特征 → patch 级记忆库 → 最近邻距离当异常分。
 
-> **状态：已用真实 MVTec AD（15 类、1725 张测试图）+ ImageNet 预训练权重跑完全流程，下面的数字可以写进简历。**
-> 环境：`E:\Program Files\python.exe`（torch 2.7.0+cu128、torchvision 0.22.0、CUDA 可用、RTX 3050 Laptop）。
-> 15 类平均：**image AUROC 0.9703 / pixel AUROC 0.9701 / 35.7 ms 每张 / 显存峰值 760.9 MB**（256×256，随机 coreset 10%）。
+> **状态：已在真实 MVTec AD（15 类 / 1,725 张测试图）上跑完整流程，本文所有数字均为本机实测，可用 `analyze.py` 与 `classify.py report` 复现。**
+> 环境：Python 3.12 + torch 2.7.0 (CUDA 12.8) + torchvision 0.22.0，单卡 RTX 3050 Laptop（4 GB 显存）。
+> 主配置（`--greedy 2000 --size 320`，见「优化实验：五种配置对比」）：**image AUROC 0.9805 / pixel AUROC 0.9709 / PR-AUC 0.993 / 19.7 ms 每张 / 显存峰值 190 MB / 记忆库 2,000 patch**。
 > 权重不是 torchvision 原版 `IMAGENET1K_V1`，而是 `timm/wide_resnet50_2.racm_in1k`（RandAugment+Mixup 重训）转出的 state_dict，见第 3 步，与论文口径可能有千分位差异。
 
 ---
