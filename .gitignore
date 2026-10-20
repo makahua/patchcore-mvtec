@@ -25,3 +25,4 @@ __pycache__/
 # 本地临时脚本
 _q.py
 _stats.py
+triage_smoke/
