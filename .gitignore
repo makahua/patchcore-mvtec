@@ -1,0 +1,27 @@
+# 数据、权重、产物都不进仓库（MVTec 有许可证，不能转发）
+syn_data/
+_calib_test/
+_smoke*/
+MVTec_dl/
+torch_cache/
+*.pth
+*.pt
+*.onnx
+*.safetensors
+
+# 每个类别的热力图与逐图分数：体积大且可复现
+results*/heatmaps/
+results*/scores/
+banks*/
+banks_smoke/
+triage/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# 本地临时脚本
+_q.py
+_stats.py
