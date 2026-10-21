@@ -41,7 +41,7 @@ def load(d):
         r15, f15 = at(98.5)
         r05, f05 = at(99.5)
         r01, f01 = at(99.9) if len(calib) >= 30 else (float('nan'), float('nan'))
-        rows.append(dict(cat=j['category'], img=auc(y, s), pr=auprc(y, s),
+        rows.append(dict(cat=j['category'], img=auc(y, s), pr=auprc(y, s), _y=y, _s=s,
                          r15=r15, f15=f15, r05=r05, f05=f05, r01=r01, f01=f01,
                          ngood=nneg, ndef=npos))
     px = {}
@@ -65,10 +65,19 @@ def show(tag, rows):
               f"{r['r15']:.1%} | {r['r05']:.1%} | {r['f05']:.1%} | {r.get('ms', 0):.1f} | {r.get('mem', 0)} |")
     m = lambda k: np.mean([r[k] for r in rows if k in r and not np.isnan(r[k])])
     sd = lambda k: np.std([r[k] for r in rows if k in r and not np.isnan(r[k])])
-    print(f"| **平均** | **{m('img'):.4f} ± {sd('img'):.4f}** | **{m('px'):.4f} ± {sd('px'):.4f}** | "
+    print(f"| **平均（macro）** | **{m('img'):.4f} ± {sd('img'):.4f}** | **{m('px'):.4f} ± {sd('px'):.4f}** | "
           f"**{m('pr'):.3f}** | **{m('r15'):.1%}** | **{m('r05'):.1%}** | {m('f05'):.1%} | {m('ms'):.1f} | {m('mem'):.0f} |")
     worst = sorted(rows, key=lambda r: r['img'])[:3]
     print(f"最低三类： " + "、".join(f"{r['cat']} {r['img']:.3f}" for r in worst))
+
+    # ---- 同一批分数换一种口径：把所有类的图混在一起算一次（pooled）----
+    # macro 每类权重相同；pooled 每张图权重相同，缺陷图多的难类（screw/capsule）会拉低它。
+    # 两个数都对，差的不是精度而是口径——对外只报一个时必须标注。
+    all_y = [yy for r in rows for yy in r['_y']]
+    all_s = [ss for r in rows for ss in r['_s']]
+    pooled = auc(all_y, all_s)
+    print(f"**口径**：macro image AUROC **{m('img'):.4f}**（15 类平均）vs pooled **{pooled:.4f}**"
+          f"（{len(all_y)} 张混池），差 {abs(m('img') - pooled) * 100:.1f} 个点。")
 
 
 for d in sys.argv[1:]:

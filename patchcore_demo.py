@@ -23,6 +23,22 @@ MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
 
+def rel_path(p, data_root, cat):
+    """把图片绝对路径转成 <类别>/<train|test>/... 的相对形式。
+
+    落盘的 scores/*.json 要进公开仓库，写绝对路径会泄漏本机目录结构，
+    所以这里统一按数据根目录做相对化，换台机器复算也不受影响。
+    """
+    try:
+        rel = os.path.relpath(os.path.abspath(p), os.path.abspath(data_root))
+        rel = rel.replace(os.sep, '/')
+        if rel.startswith('..'):
+            raise ValueError
+        return rel
+    except Exception:
+        return '/'.join([cat] + os.path.abspath(p).replace('\\', '/').split('/')[-3:])
+
+
 def list_images(d):
     out = []
     for root, _, files in os.walk(d):
@@ -266,7 +282,8 @@ def run_category(args, cat, device):
     with open(os.path.join(args.out, 'scores', f'{cat}.json'), 'w', encoding='utf-8') as f:
         json.dump(dict(category=cat, thr=thr, thr_pct=args.thr_pct,
                        calib=list(map(float, train_scores)),
-                       test=[dict(path=p, label=l, score=s) for p, l, s in zip(test_imgs, y, score)]),
+                       test=[dict(path=rel_path(p, args.data, cat), label=l, score=s)
+                             for p, l, s in zip(test_imgs, y, score)]),
                   f, ensure_ascii=False)
 
     res = dict(category=cat, n_train=len(train_imgs), n_calib=len(calib_imgs), n_test=len(test_imgs),

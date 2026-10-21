@@ -172,7 +172,7 @@ python patchcore_demo.py --data D:/MVTec --category all --calib-ratio 0.3
 
 ### 优化实验：五种配置对比（同机 RTX 3050 Laptop，都带 --calib-ratio 0.3）
 
-| 配置 | image AUROC | pixel AUROC | PR-AUC | 单张 | 显存峰值 | 召回@0.5%过杀 |
+| 配置 | image AUROC（macro） | pixel AUROC | PR-AUC | 单张 | 显存峰值 | 召回@0.5%过杀（macro） |
 |---|---|---|---|---|---|---|
 | 随机 10% / 256（初版，阈值未留出） | 0.9703 | 0.9701 | — | 35.7 ms | 761 MB | 阈值不可信 |
 | 随机 10% / 256 | 0.9662 ± 0.039 | 0.9694 | 0.988 | 28.3 ms | 394 MB | 83.0% |
@@ -181,10 +181,24 @@ python patchcore_demo.py --data D:/MVTec --category all --calib-ratio 0.3
 | **greedy 2000 / 320（最终档）** | **0.9805 ± 0.019** | **0.9709** | **0.993** | 19.7 ms | 190 MB | 82.8% |
 | 9 邻域 / 256 | ❌ 4GB 卡 OOM | | | | | |
 
+> **⚠ 口径：这一列的 image AUROC 是 macro**（每类各算一个 AUC，再对 15 类取平均）。
+> 同一批分数如果按图片**汇总**（pooled，1725 张混在一起算一次）是 **0.8812**，比 macro 低 9.9 个点。
+> 原因：各类分数分布量级不同（screw 整体偏高、leather 偏低），混池后排序被打乱。
+> 两个数都对，但**必须说清是哪个**——面试官拿仓库里的 scores 复算，如果得到 0.88 而你写 0.98，会当场翻车。
+> 复算命令见下面「三档判定」一节，classify.py report 会把两个口径一起打出来。
+
 > 最终档（`results_best/`）就是简历上那组：留出 1085 张正常图做阈值标定，逐类最差三类
 > toothbrush 0.947 / screw 0.955 / pill 0.956，都比 256 版好（256 版 screw 只有 0.901）。
 > 
-> **口径提醒**：表里「召回@0.5%过杀」是**按类平均**（macro）。若按缺陷图**汇总**（pooled），最终档是 80.0%（漏检 20.0%）——screw / capsule 缺陷样本多且难，会把池化值拉低。简历与对外汇报只用 pooled 那一个数，别两处混着引。
+> **口径提醒（两个指标都各有一个口径，别混）**：
+> - image AUROC：macro **0.9805**，pooled **0.8812**；
+> - 召回@0.5%过杀：macro **82.8%**（漏检 17.2%），pooled **80.0%**（漏检 20.0%）——
+>   screw / capsule 缺陷样本多且难，会把池化值拉低。
+> 
+> **对外怎么报**：报 macro 就必须写成「15 类均值 / 15 类平均」，不能只写「image AUROC 0.98」；
+> 被问「全部混一起是多少」时直接答 pooled 0.8812，并解释原因（难类缺陷样本多、分数分布量级不同）。
+> 简历上那版写的是 `image AUROC 0.980（15 类均值）`——带了这个限定，两个口径就不冲突；
+> 千万不要在 A 处写 macro、B 处写 pooled 还都叫「AUROC」。
 
 结论（可以直接当面试答案）：
 1. **greedy coreset 是性价比最高的一步**：AUROC +0.75 点、时延 28→16 ms（-42%）、显存 394→169 MB、跨类标准差 0.039→0.027（更稳）。
@@ -211,6 +225,19 @@ python classify.py infer  --bank banks/bottle.npz --image test/broken_large/000.
 python classify.py eval   --bank banks/bottle.npz --data D:/MVTec --category screw --sweep
 python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.2   # 全 15 类，离线，秒出
 ```
+
+> `report` 不需要数据集、不需要 GPU、不需要权重——它只读仓库里已提交的 `results_best/scores/*.json`
+> （15 个文件共 139 KB，`path` 已写成 `<类别>/test/...` 的相对形式，不含任何本机绝对路径）。
+> 这是复算上表的最短路径：克隆仓库 → 一条命令 → 得到同样的 15 行与下面两个 AUC 口径。
+> 
+> 输出末尾会固定打印：
+> 
+> ```
+> AUC 口径（同一批分数，两种算法）
+>   macro（15 类各自算 AUC 再平均） 0.9805 ± 0.0189
+>   pooled（全部 1725 张混池后算）    0.8812
+>   差 9.9 个点 —— 对外只报一个数时必须标注口径
+> ```
 
 `infer` 会输出三联图（原图 ｜ 热力图 ｜ 叠加），归一化分数图、双线性放大后上色：
 
@@ -270,7 +297,9 @@ AUROC 是阈值无关的，但产线只关心「固定过杀率下能抓多少�
 python analyze.py results_greedy        # 也可以一次给多个目录对比
 ```
 
-输出每类的 image/pixel AUROC、**PR-AUC**（缺陷占比极低时比 AUROC 诚实）、**召回@1.5%/0.5% 过杀率**、时延、记忆库大小。
+输出每类的 image/pixel AUROC、**PR-AUC**（缺陷占比极低时比 AUROC 诚实）、**召回@1.5%/0.5% 过杀率**、时延、记忆库大小，
+最后一行固定给出 **macro vs pooled 的口径对照**（见上一节的 ⚠ 提示）——`analyze.py` 和 `classify.py report` 都会打，
+这样「简历上的 0.98」和「别人复算出的 0.88」永远同时出现在你眼前，不会各说各话。
 
 论文里 PatchCore（greedy coreset 1%）全类平均 image AUROC 是 99.6%、pixel 98.1%；本机 0.980/0.971，差距来自三处，面试可以主动讲：
 1. ~~随机抽样代替贪心~~ —— 已用 `--greedy 2000` 补上（0.9662→0.9737），所以这条已经不算借口了；
@@ -310,12 +339,13 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 
 **版式 A（3 行，推荐）**
 
-> **【工业质检 · 无监督】** MVTec AD 少样本缺陷检测（PatchCore 复现与产线阈值策略）　｜　个人项目　｜　【2026.xx】
+> **【工业质检】** MVTec AD 少样本无监督缺陷检测（PatchCore）　｜　个人项目　｜　2026.10　｜　代码开源（见 GitHub）
 > - **方法：** WideResNet50 的 layer2/layer3 特征融合出 /8 分辨率 patch 描述子，构建正常样本记忆库，测试时以最近邻距离作为异常分数；用高斯平滑抑制单点噪声，再做 image-level 判定。
-> - **工程：** 用随机抽样 / k-center 贪心两种 coreset 策略控制记忆库规模，显存占用从【x.x GB】降到【x.x GB】，单张推理【xx ms】（RTX 5070，256×256）。
-> - **结果：** MVTec AD 15 类共 1,725 张测试图，平均 image AUROC 0.970、pixel AUROC 0.970（bottle / tile / leather 均 1.000）；单张 36 ms（RTX 3050 Laptop，256×256）、显存 0.7 GB；阈值由 good 样本 99% 分位离线标定（漏检 6%），可按产线漏检/误报偏好调整。
+> - **工程：** 用随机抽样 / k-center 贪心两种 coreset 策略控制记忆库规模，把每类约 27 万 patch 压到 2,000（<1%），单张 20 ms（RTX 3050 Laptop）、显存 0.19 GB；同分辨率下比随机抽样快 42%、省一半显存且精度反高 0.7 点。
+> - **结果：** MVTec AD 15 类共 1,725 张测试图，image AUROC 0.980（15 类均值）、pixel AUROC 0.971、PR-AUC 0.993；自研 OK / 复检 / NG 三档判定（阈值由良品留出 1,085 张标定，目标过杀 0.5%）：良品直接判废 0.2%、转复核 2.1%，缺陷漏检 20.0%、灰区再捞回 30%；过杀放宽到 1% / 10% 时漏检 16.6% / 4.1%，给出「过杀-漏检-复核量」产线曲线。
 
-（以上为**已跑出的真实版本**，简历里就是用这一版。）
+（以上为**已跑出的真实版本**，简历里就是用这一版。注意第一句的 `0.980（15 类均值）` 是 macro 口径，
+括号不能省——省了就和 pooled 0.8812 打架，见上一节 ⚠ 提示。）
 
 **版式 B（2 行，版面紧张时）**
 
@@ -328,13 +358,13 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 
 `results.csv` 里这几列就是简历要的：
 
-| CSV 列 | 简历里写什么 |
-|---|---|
-| `img_auroc` | image AUROC 0.9xx |
-| `pixel_auroc` | pixel AUROC 0.9xx |
-| `latency_ms` | 单张 xx ms |
-| `mem_patches` + `peak_gpu_mb` | 记忆库 xx patch、显存 x.x GB |
-| `recall_at_thr` / `false_positive_rate` | 漏检 x% / 误报 x% |
+| CSV 列 | 简历里写什么 | 注意 |
+|---|---|---|
+| `img_auroc` | image AUROC 0.9xx | **必须标「15 类均值」**（macro），否则与 pooled 冲突 |
+| `pixel_auroc` | pixel AUROC 0.9xx | 同样按类平均 |
+| `latency_ms` | 单张 xx ms | 注明机器型号与分辨率 |
+| `mem_patches` + `peak_gpu_mb` | 记忆库 xx patch、显存 x.x GB | 显存取 `peak_gpu_mb`，别用 nvidia-smi 的整卡占用 |
+| `recall_at_thr` / `false_positive_rate` | 漏检 x% / 误报 x% | 这两列是**单阈值**结果；三档判定的数要跑 `classify.py report` |
 
 ---
 
@@ -349,18 +379,23 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 
 ---
 
-## 7. 三天计划
+## 7. 30 分钟复现路径（给面试官 / 给未来的自己）
 
-| 天 | 做什么 | 产出 |
-|---|---|---|
-| Day 1 | 装环境、下 bottle、冒烟跑通 | 终端里出现第一行 `img_auroc` |
-| Day 2 | bottle 调参（`--greedy`、`--neighbors`、`--thr-pct`），记录对比表 | 3~5 组对比数据 |
-| Day 3 | 跑 `--category all`，挑 2 张热力图，写 README（含对比表） | 简历数字 + GitHub 仓库 |
+数据 5.27 GB 和权重 267 MB 都不在仓库里（MVTec 许可证禁止再分发、GitHub 也有单文件上限），
+所以仓库只放**代码 + 结果表 + 逐图分数**。想验证结论，最短路径是这两条：
+
+| 想验证什么 | 要准备什么 | 命令 | 耗时 |
+|---|---|---|---|
+| 三档判定那 15 行 + 两个 AUC 口径 | **什么都不用** | `python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.2` | 1 秒 |
+| 某类能跑到同样 AUROC | 数据集 + 权重 | `python patchcore_demo.py --data D:/MVTec --category bottle --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --weights W.pth` | bottle 约 3 分钟（建库 168 s + 推理） |
+
+> 第二条命令的预期值（bottle，RTX 3050 Laptop）：`img_auroc 1.0000 / pixel 0.9857 / threshold 37.9943 / mem 2000 / peak 188.7 MB`。
+> 时延会在 17–24 ms 之间抖动（笔记本 GPU 动态频率），**别把时延当复现失败的判据，看 threshold 和 AUROC**。
 
 ## 8. 进阶（做完再做，别一次贪多）
 
 - 加 **PaDiM** 对比（多元高斯 + 马氏距离）：改动约 50 行，能讲“为什么 PatchCore 比 PaDiM 强：不受高斯假设约束”。
-- 把 `patchcore_demo.py` 包成 **FastAPI + PyQt**：直接复用你毕设那套 backend/frontend 骨架，简历上就多一句“异常检测服务化”。
+- 把 `patchcore_demo.py` 包成 **FastAPI 服务**（本机毕设那套 backend 骨架可复用）：多一句「异常检测服务化」。
 - 换**自己的工件**：拍 30 张正常螺栓/PCB，跑同一套流程——这一步能把“公开数据集”升级成“真实工件验证”，面试杀伤力翻倍。
 
 ---

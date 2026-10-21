@@ -27,15 +27,16 @@ import torch
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import patchcore_demo as pc          # 复用特征提取 / 记忆库 / 打分，避免两套实现漂移
+import patchcore_demo as _pcdemo    # 复用特征提取 / 记忆库 / 打分，避免两套实现漂移
+from patchcore_demo import auc      # 单独取 AUC，避免与下面格式化用的 pct() 重名
 
 
 # ---------------------------------------------------------------- 打分的公共部分
 @torch.no_grad()
 def image_patch_scores(model, bank, path, size, device, neighbors=False):
     """单张图 → (patch 分数图 hxw, 图像分数)。"""
-    x = pc.load_img(path, size)
-    patch, score = pc.patch_scores(model, bank, x, device, neighbors)
+    x = _pcdemo.load_img(path, size)
+    patch, score = _pcdemo.patch_scores(model, bank, x, device, neighbors)
     return patch.cpu().numpy(), score
 
 
@@ -44,8 +45,8 @@ def collect_patches(model, paths, size, device, log_every=40):
     """把一批图的 patch 描述子堆成 (N, C) 张量。"""
     out = []
     for i, p in enumerate(paths):
-        x = pc.load_img(p, size).to(device)
-        emb, _ = pc.embed(model(x))
+        x = _pcdemo.load_img(p, size).to(device)
+        emb, _ = _pcdemo.embed(model(x))
         out.append(emb.squeeze(0))
         if log_every and (i + 1) % log_every == 0:
             print(f'  特征 {i + 1}/{len(paths)}', flush=True)
@@ -116,7 +117,7 @@ def cmd_build(a):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     root = os.path.join(a.data, a.category)
     train_dir = os.path.join(root, 'train', 'good')
-    imgs = pc.list_images(train_dir)
+    imgs = _pcdemo.list_images(train_dir)
     if not imgs:
         raise SystemExit(f'找不到训练图：{train_dir}')
 
@@ -127,11 +128,11 @@ def cmd_build(a):
     used = [imgs[i] for i in sorted(idx[n_cal:])]
     print(f'[{a.category}] 训练图 {len(imgs)} → 建库 {len(used)} / 标定 {len(calib)}')
 
-    model = pc.Features(weights_path=a.weights, imagenet_norm=a.imagenet_norm).to(device).eval()
+    model = _pcdemo.Features(weights_path=a.weights, imagenet_norm=a.imagenet_norm).to(device).eval()
     print('提取建库特征…', flush=True)
     feats = collect_patches(model, used, a.size, device)
     print(f'  建库 patch {feats.shape[0]:,} × {feats.shape[1]}', flush=True)
-    bank = pc.coreset_greedy(feats, a.greedy, seed=a.seed)
+    bank = _pcdemo.coreset_greedy(feats, a.greedy, seed=a.seed)
     print(f'  贪心 coreset → {bank.shape[0]} patch（{bank.shape[0] / feats.shape[0]:.2%}）', flush=True)
     del feats
     torch.cuda.empty_cache() if device.type == 'cuda' else None
@@ -161,10 +162,10 @@ def cmd_build(a):
 def cmd_infer(a):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bank, meta = load_bank(a.bank, device)
-    model = pc.Features(weights_path=_pick_weights(a, meta),
+    model = _pcdemo.Features(weights_path=_pick_weights(a, meta),
                         imagenet_norm=a.imagenet_norm).to(device).eval()
 
-    paths = [a.image] if os.path.isfile(a.image) else pc.list_images(a.image)
+    paths = [a.image] if os.path.isfile(a.image) else _pcdemo.list_images(a.image)
     print(f'{"图":<44}{"分数":>9}  {"判定":<7}阈值 {meta["thr_ok"]:.2f} / {meta["thr_ng"]:.2f}')
     print('-' * 78)
     rows = []
@@ -191,7 +192,7 @@ def cmd_infer(a):
 def cmd_eval(a):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bank, meta = load_bank(a.bank, device)
-    model = pc.Features(weights_path=_pick_weights(a, meta),
+    model = _pcdemo.Features(weights_path=_pick_weights(a, meta),
                         imagenet_norm=a.imagenet_norm).to(device).eval()
     test_dir = os.path.join(a.data, a.category, 'test')
     if not os.path.isdir(test_dir):
@@ -203,7 +204,7 @@ def cmd_eval(a):
         d = os.path.join(test_dir, sub)
         if not os.path.isdir(d):
             continue
-        for p in pc.list_images(d):
+        for p in _pcdemo.list_images(d):
             items.append((p, 'good' if sub == 'good' else sub))
     if a.limit:
         rng = np.random.RandomState(a.seed)
@@ -296,7 +297,7 @@ def cmd_report(a):
     if not files:
         raise SystemExit(f'{a.scores} 下没有 scores/*.json，先跑 patchcore_demo.py --out 同目录')
 
-    rows_all, lines = [], []
+    rows_all, lines, skipped = [], [], []
     print(f'{"类别":<12}{"良品":>5}{"缺陷":>5}{"thr_ok":>8}{"过杀":>8}{"良品复核":>10}{"漏检":>8}{"复核量":>8}')
     print('-' * 74)
     for p in files:
@@ -304,6 +305,11 @@ def cmd_report(a):
         calib = np.asarray(j.get('calib') or [], dtype=np.float64)
         tests = j.get('test') or []
         if len(calib) < 10 or not tests:
+            # 早期版本这里是静默 continue，屏幕只留一屏「-」，看不出为什么少了一类。
+            # 标定图少于 10 张时 P99.5 分位数不可靠，小样本冒烟（--limit）几乎必然触发。
+            print(f'{j.get("category", os.path.basename(p)):<12}  跳过：'
+                  f'标定 {len(calib)} 张（<10，分位数不可信）、测试 {len(tests)} 条')
+            skipped.append(dict(category=j.get('category'), reason='calib<10', n_calib=len(calib), n_test=len(tests)))
             continue
         thr_ok = float(np.percentile(calib, 100 * (1 - a.fpr)))
         thr_ng = thr_ok * a.ng_ratio
@@ -314,14 +320,21 @@ def cmd_report(a):
         miss = sum(1 for t in d if t['score'] < thr_ok)
         drv = sum(1 for t in d if thr_ok <= t['score'] < thr_ng)
         rows_all += [(j['category'], int(t['label']), float(t['score']), thr_ok, thr_ng) for t in tests]
-        pc = lambda x, n: f'{x / n:.1%}' if n else '-'
-        print(f'{j["category"]:<12}{len(g):>5}{len(d):>5}{thr_ok:>8.1f}{pc(fa, len(g)):>8}'
-              f'{pc(grv, len(g)):>10}{pc(miss, len(d)):>8}{pc(grv + drv, len(g) + len(d)):>8}')
+        pct = lambda x, n: f'{x / n:.1%}' if n else '-'
+        print(f'{j["category"]:<12}{len(g):>5}{len(d):>5}{thr_ok:>8.1f}{pct(fa, len(g)):>8}'
+              f'{pct(grv, len(g)):>10}{pct(miss, len(d)):>8}{pct(grv + drv, len(g) + len(d)):>8}')
         lines.append(dict(category=j['category'], n_good=len(g), n_defect=len(d), thr_ok=round(thr_ok, 3),
                           thr_ng=round(thr_ng, 3), false_alarm=fa / len(g) if g else None,
                           review_good=grv / len(g) if g else None,
                           miss_rate=miss / len(d) if d else None,
                           review_load=(grv + drv) / (len(g) + len(d))))
+
+    if not rows_all:
+        # 全部类别都被跳过（典型场景：用 --limit 冒烟跑出来的 scores）
+        # 此时继续往下会打一屏 0 与「-」，容易被当成程序坏了
+        print(f'\n没有可评估的类别：{len(skipped)} 个文件全被跳过（原因见上）。')
+        print('冒烟/小样本请用 classify.py eval（会重新建库标定），report 只吃完整跑的 scores。')
+        return
 
     # 汇总：所有类合并成一个混淆矩阵（每类用自己的阈值）
     G = [r for r in rows_all if r[1] == 0]
@@ -330,15 +343,15 @@ def cmd_report(a):
     grv = sum(1 for r in G if r[3] <= r[2] < r[4])
     miss = sum(1 for r in D if r[2] < r[3])
     drv = sum(1 for r in D if r[3] <= r[2] < r[4])
-    pc = lambda x, n: f'{x / n:.1%}' if n else '-'
+    pct = lambda x, n: f'{x / n:.1%}' if n else '-'
     print('-' * 74)
-    print(f'{"汇总":<12}{len(G):>5}{len(D):>5}{"":>8}{pc(fa, len(G)):>8}{pc(grv, len(G)):>10}'
-          f'{pc(miss, len(D)):>8}{pc(grv + drv, len(rows_all)):>8}')
+    print(f'{"汇总":<12}{len(G):>5}{len(D):>5}{"":>8}{pct(fa, len(G)):>8}{pct(grv, len(G)):>10}'
+          f'{pct(miss, len(D)):>8}{pct(grv + drv, len(rows_all)):>8}')
     print(f'\n目标过杀 {a.fpr:.1%}｜灰区 {a.ng_ratio:g}×｜合计 {len(rows_all)} 张')
-    print(f'  漏检率（缺陷判 OK，硬指标）      {pc(miss, len(D))}')
-    print(f'  灰区兜住的缺陷（人工复核可捞回）  {pc(drv, len(D))}')
-    print(f'  复核后等效漏检                  {pc(miss, len(D))}（灰区人工兜底）')
-    print(f'  人工复核量（占全量）            {pc(grv + drv, len(rows_all))}')
+    print(f'  漏检率（缺陷判 OK，硬指标）      {pct(miss, len(D))}')
+    print(f'  灰区兜住的缺陷（人工复核可捞回）  {pct(drv, len(D))}')
+    print(f'  复核后等效漏检                  {pct(miss, len(D))}（灰区人工兜底）')
+    print(f'  人工复核量（占全量）            {pct(grv + drv, len(rows_all))}')
 
     # 真正的"产线曲线"是调 thr_ok 的分位（= 允许的良品过杀），漏检与过杀此消彼长。
     # 灰区只影响"人要复查多少"，不影响漏检（漏检由 thr_ok 决定）。
@@ -357,14 +370,40 @@ def cmd_report(a):
         rv2 = sum(1 for r in G2 if ths.get(r[0], 0) <= r[2] < ths.get(r[0], 0) * a.ng_ratio)
         ms2 = sum(1 for r in D2 if r[2] < ths.get(r[0], 0))
         dv2 = sum(1 for r in D2 if ths.get(r[0], 0) <= r[2] < ths.get(r[0], 0) * a.ng_ratio)
-        print(f'{tgt:>9.1%}{pc(fa2, len(G2)):>10}{pc(ms2, len(D2)):>9}{pc(dv2, len(D2)):>10}'
-              f'{pc(rv2 + dv2, len(rows_all)):>9}')
+        print(f'{tgt:>9.1%}{pct(fa2, len(G2)):>10}{pct(ms2, len(D2)):>9}{pct(dv2, len(D2)):>10}'
+              f'{pct(rv2 + dv2, len(rows_all)):>9}')
+
+    # ---- AUC 口径：macro（每类算完再平均）与 pooled（所有图混在一起算）差别很大 ----
+    # 各类缺陷的分数分布量级不同（screw 普遍高、leather 普遍低），混池后排序被打乱，
+    # pooled 会比 macro 低一截。对外只能报一个数时必须说清是哪个口径。
+    per_auc = []
+    for p in files:
+        j = json.load(open(p, encoding='utf-8'))
+        ts = j.get('test') or []
+        if len(ts) < 2:
+            continue
+        a_ = _pcdemo.auc([int(t['label']) for t in ts], [float(t['score']) for t in ts])
+        if a_ == a_:          # 排除 nan
+            per_auc.append((j['category'], a_))
+    pooled_auc = _pcdemo.auc([r[1] for r in rows_all], [r[2] for r in rows_all]) if rows_all else float('nan')
+    macro_auc = float(np.mean([v for _, v in per_auc])) if per_auc else float('nan')
+    macro_std = float(np.std([v for _, v in per_auc])) if per_auc else float('nan')
+    print('\nAUC 口径（同一批分数，两种算法）')
+    print(f'  macro（{len(per_auc)} 类各自算 AUC 再平均） {macro_auc:.4f} ± {macro_std:.4f}')
+    print(f'  pooled（全部 {len(rows_all)} 张混池后算）     {pooled_auc:.4f}')
+    print(f'  差 {abs(macro_auc - pooled_auc) * 100:.1f} 个点 —— 对外只报一个数时必须标注口径')
+
+    if skipped:
+        print(f'\n跳过 {len(skipped)} 类（未计入汇总）：' + '、'.join(s['category'] for s in skipped))
 
     if a.out:
         os.makedirs(a.out, exist_ok=True)
         p = os.path.join(a.out, 'triage_all.json')
         with open(p, 'w', encoding='utf-8') as f:
-            json.dump(dict(fpr=a.fpr, ng_ratio=a.ng_ratio, per_class=lines), f, ensure_ascii=False, indent=2)
+            json.dump(dict(fpr=a.fpr, ng_ratio=a.ng_ratio, per_class=lines,
+                           macro_auc=round(macro_auc, 4), macro_auc_std=round(macro_std, 4),
+                           pooled_auc=round(pooled_auc, 4), skipped=skipped),
+                      f, ensure_ascii=False, indent=2)
         print(f'\n明细已写入 {p}')
 
 

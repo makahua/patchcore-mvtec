@@ -9,9 +9,14 @@ torch_cache/
 *.onnx
 *.safetensors
 
-# 每个类别的热力图与逐图分数：体积大且可复现
+# 每个类别的热力图：体积大且可复现
 results*/heatmaps/
+
+# 逐图分数默认不入库，只放行 results_best（简历/README 里的三档表靠它秒级复算）
+# 注意：这些 json 里的 path 已由 patchcore_demo.py 的 rel_path() 写成相对路径
 results*/scores/
+!results_best/scores/
+!results_best/scores/*.json
 banks*/
 banks_smoke/
 triage/
@@ -26,3 +31,6 @@ __pycache__/
 _q.py
 _stats.py
 triage_smoke/
+_reltest/
+_skiptest/
+results_verify_bottle/
