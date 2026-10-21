@@ -37,6 +37,10 @@ pip install numpy pillow matplotlib tqdm
 
 验证：`python -c "import torch;print(torch.__version__, torch.cuda.is_available())"`
 
+> **只想复算三档表？上面这一整节都可以跳过。** `classify.py report` 只依赖 numpy，
+> 装个 numpy 就能读 `results_best/scores/*.json` 复现 README 里的 15 行与两个 AUC 口径（1 秒）。
+> 需要 torch 的只有 `build / infer / eval` 三个子命令和 `patchcore_demo.py` 本身。
+
 > 首次运行会自动下载 wide_resnet50_2 的 ImageNet 权重（约 250MB）。下载慢就设镜像：
 > `set TORCH_HOME=D:\torch_cache` 然后用迅雷下权重放到该目录，或开代理。
 
@@ -226,7 +230,8 @@ python classify.py eval   --bank banks/bottle.npz --data D:/MVTec --category scr
 python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.2   # 全 15 类，离线，秒出
 ```
 
-> `report` 不需要数据集、不需要 GPU、不需要权重——它只读仓库里已提交的 `results_best/scores/*.json`
+> `report` **只需要 numpy**：不需要数据集、不需要 GPU、不需要权重，也不用装 torch / torchvision。
+> 它只读仓库里已提交的 `results_best/scores/*.json`
 > （15 个文件共 139 KB，`path` 已写成 `<类别>/test/...` 的相对形式，不含任何本机绝对路径）。
 > 这是复算上表的最短路径：克隆仓库 → 一条命令 → 得到同样的 15 行与下面两个 AUC 口径。
 > 
@@ -386,7 +391,7 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 
 | 想验证什么 | 要准备什么 | 命令 | 耗时 |
 |---|---|---|---|
-| 三档判定那 15 行 + 两个 AUC 口径 | **什么都不用** | `python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.2` | 1 秒 |
+| 三档判定那 15 行 + 两个 AUC 口径 | **只要有 numpy** | `python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.2` | 1 秒 |
 | 某类能跑到同样 AUROC | 数据集 + 权重 | `python patchcore_demo.py --data D:/MVTec --category bottle --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --weights W.pth` | bottle 约 3 分钟（建库 168 s + 推理） |
 
 > 第二条命令的预期值（bottle，RTX 3050 Laptop）：`img_auroc 1.0000 / pixel 0.9857 / threshold 37.9943 / mem 2000 / peak 188.7 MB`。

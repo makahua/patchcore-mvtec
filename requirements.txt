@@ -1,4 +1,6 @@
 # PatchCore demo 依赖（不含 anomalib，全部自己实现）
+# 只想复算三档判定表（classify.py report）→ 装 numpy 就够了
+# 跑建库 / 推理 / 评测（build / infer / eval、patchcore_demo.py）→ 才需要 torch + torchvision + pillow
 torch>=2.0
 torchvision>=0.15
 numpy>=1.24

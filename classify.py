@@ -23,33 +23,72 @@
 """
 import argparse, glob, json, os, sys
 import numpy as np
-import torch
-from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import patchcore_demo as _pcdemo    # 复用特征提取 / 记忆库 / 打分，避免两套实现漂移
-from patchcore_demo import auc      # 单独取 AUC，避免与下面格式化用的 pct() 重名
+
+
+def auc(y_true, y_score):
+    """rank 法 AUROC（含并列处理），与 patchcore_demo.auc 逐位一致。
+
+    这里复制一份而不是 import，是为了让 report 子命令在**没装 torch 的机器**上也能跑：
+    验证三档表只需要 numpy，不该为了复算一个数去装 2 GB 的 PyTorch。
+    """
+    y = np.asarray(y_true).astype(np.int64)
+    s = np.asarray(y_score, dtype=np.float64)
+    order = np.argsort(s)
+    ranks = np.empty(len(s), dtype=np.float64)
+    ranks[order] = np.arange(1, len(s) + 1)
+    _, inv, cnt = np.unique(s, return_inverse=True, return_counts=True)
+    ranks = (np.bincount(inv, weights=ranks) / cnt)[inv]
+    n_pos = int((y == 1).sum())
+    n_neg = int((y == 0).sum())
+    if n_pos == 0 or n_neg == 0:
+        return float('nan')
+    return float((ranks[y == 1].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
+
+
+# torch / PIL / patchcore_demo 只在 build / infer / eval 里用，report 不需要 —— 延迟到真正用到时再导入。
+torch = _pcdemo = Image = None
+
+
+def _need_torch():
+    """build / infer / eval 的入口：这里才真正去 import 重依赖。"""
+    global torch, _pcdemo, Image
+    if torch is not None:
+        return
+    try:
+        import torch as _t
+        from PIL import Image as _I
+        import patchcore_demo as _p
+    except ImportError as e:
+        raise SystemExit(
+            f'当前子命令需要 torch / torchvision / Pillow（{e}）。'
+            ' 只复算三档表请用：python classify.py report --scores results_best/scores')
+    torch, Image, _pcdemo = _t, _I, _p
+    torch.set_grad_enabled(False)
 
 
 # ---------------------------------------------------------------- 打分的公共部分
-@torch.no_grad()
+# 注意：这里不能用 @torch.no_grad() 装饰器 —— torch 是延迟导入的，模块加载时还是 None。
+# 改成在函数体内 with torch.no_grad()，效果一样。
 def image_patch_scores(model, bank, path, size, device, neighbors=False):
     """单张图 → (patch 分数图 hxw, 图像分数)。"""
-    x = _pcdemo.load_img(path, size)
-    patch, score = _pcdemo.patch_scores(model, bank, x, device, neighbors)
-    return patch.cpu().numpy(), score
+    with torch.no_grad():
+        x = _pcdemo.load_img(path, size)
+        patch, score = _pcdemo.patch_scores(model, bank, x, device, neighbors)
+        return patch.cpu().numpy(), score
 
 
-@torch.no_grad()
 def collect_patches(model, paths, size, device, log_every=40):
     """把一批图的 patch 描述子堆成 (N, C) 张量。"""
     out = []
-    for i, p in enumerate(paths):
-        x = _pcdemo.load_img(p, size).to(device)
-        emb, _ = _pcdemo.embed(model(x))
-        out.append(emb.squeeze(0))
-        if log_every and (i + 1) % log_every == 0:
-            print(f'  特征 {i + 1}/{len(paths)}', flush=True)
+    with torch.no_grad():
+        for i, p in enumerate(paths):
+            x = _pcdemo.load_img(p, size).to(device)
+            emb, _ = _pcdemo.embed(model(x))
+            out.append(emb.squeeze(0))
+            if log_every and (i + 1) % log_every == 0:
+                print(f'  特征 {i + 1}/{len(paths)}', flush=True)
     return torch.cat(out, dim=0)
 
 
@@ -114,6 +153,7 @@ def load_bank(path, device):
 
 # ---------------------------------------------------------------- build
 def cmd_build(a):
+    _need_torch()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     root = os.path.join(a.data, a.category)
     train_dir = os.path.join(root, 'train', 'good')
@@ -160,6 +200,7 @@ def cmd_build(a):
 
 # ---------------------------------------------------------------- infer
 def cmd_infer(a):
+    _need_torch()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bank, meta = load_bank(a.bank, device)
     model = _pcdemo.Features(weights_path=_pick_weights(a, meta),
@@ -190,6 +231,7 @@ def cmd_infer(a):
 
 # ---------------------------------------------------------------- eval
 def cmd_eval(a):
+    _need_torch()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bank, meta = load_bank(a.bank, device)
     model = _pcdemo.Features(weights_path=_pick_weights(a, meta),
@@ -382,10 +424,10 @@ def cmd_report(a):
         ts = j.get('test') or []
         if len(ts) < 2:
             continue
-        a_ = _pcdemo.auc([int(t['label']) for t in ts], [float(t['score']) for t in ts])
+        a_ = auc([int(t['label']) for t in ts], [float(t['score']) for t in ts])
         if a_ == a_:          # 排除 nan
             per_auc.append((j['category'], a_))
-    pooled_auc = _pcdemo.auc([r[1] for r in rows_all], [r[2] for r in rows_all]) if rows_all else float('nan')
+    pooled_auc = auc([r[1] for r in rows_all], [r[2] for r in rows_all]) if rows_all else float('nan')
     macro_auc = float(np.mean([v for _, v in per_auc])) if per_auc else float('nan')
     macro_std = float(np.std([v for _, v in per_auc])) if per_auc else float('nan')
     print('\nAUC 口径（同一批分数，两种算法）')
