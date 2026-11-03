@@ -1,0 +1,23 @@
+﻿# 本机实测通过的精确版本（2026-11-04，Python 3.13.9 / Windows）
+# 生成命令：.venv\Scripts\python.exe -m pip freeze
+# 用途：与 pyproject.toml 的 >= 下限互补，复现实验时以本文件为准
+
+filelock==4.2.4
+fsspec==2026.9.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+mpmath==1.3.0
+networkx==3.7
+numpy==2.5.4
+pillow==13.0.0
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.2
+PyQt5_sip==12.20.0
+PyQt6==6.12.0
+PyQt6-Qt6==6.12.0
+PyQt6_sip==13.13.0
+setuptools==78.1.0
+sympy==1.14.0
+torch==2.7.0+cu128
+torchvision==0.22.0+cu128
+typing_extensions==4.16.0

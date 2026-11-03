@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "patchcore-mvtec"
+version = "0.4.0"
+description = "Minimal PatchCore re-implementation for MVTec AD anomaly detection, with threshold calibration and cost-aware triage"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "makahua" }]
+keywords = ["anomaly-detection", "patchcore", "mvtec", "industrial-inspection"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+# 推理最小依赖：numpy 足以跑离线报表（classify.py report / tests），
+# torch 与 torchvision 只在建库、推理、评测时需要。这样 CI 与「只想复算数字」的人
+# 不必装 2 GB 的 CUDA 轮子。
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+torch = ["torch>=2.0", "torchvision>=0.15"]
+demo = ["pillow>=9.5", "PyQt6>=6.5"]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools]
+py-modules = ["patchcore_demo", "classify", "analyze"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
+# 测试只依赖 numpy：这里显式声明，避免有人以为要先装 torch 才能跑 CI。
+filterwarnings = ["error::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+exclude = [".venv", "experiment_data", "MVTec", "VisA_raw", "VisA_pytorch", "torch_cache"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

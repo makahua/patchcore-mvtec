@@ -48,10 +48,58 @@ def list_images(d):
     return sorted(out)
 
 
-def load_img(path, size):
-    im = Image.open(path).convert('RGB').resize((size, size), Image.BILINEAR)
+def load_img(path, size, preprocess='stretch', aspect_crop=0.0):
+    """读图 → [1,3,S,S]。
+
+    preprocess:
+      stretch   —— 直接 resize 到 S×S（会改变长宽比；MVTec 全为方图，故与 letterbox 等价）
+      letterbox —— 等比缩放到长边 = S，再用均值灰 (114) 居中补成 S×S（保住长宽比）
+    aspect_crop:
+      模拟非方形视野：先中心裁剪成 h/w = 该比例（如 0.75 ≈ 4:3 相机），再走上面的预处理。
+      数据集本身全是方图，只有裁剪之后「拉伸畸变」才真正被引入，这就是本开关的用途。
+    """
+    im = Image.open(path).convert('RGB')
+    if aspect_crop and aspect_crop > 0:
+        w, h = im.size
+        ch = min(h, max(1, int(round(w * aspect_crop))))
+        top = (h - ch) // 2
+        im = im.crop((0, top, w, top + ch))
+    if preprocess == 'letterbox':
+        w, h = im.size
+        s = size / float(max(w, h))
+        nw, nh = max(1, int(round(w * s))), max(1, int(round(h * s)))
+        im = im.resize((nw, nh), Image.BILINEAR)
+        canvas = Image.new('RGB', (size, size), (114, 114, 114))
+        canvas.paste(im, ((size - nw) // 2, (size - nh) // 2))
+        im = canvas
+    else:
+        im = im.resize((size, size), Image.BILINEAR)
     x = torch.from_numpy(np.asarray(im, dtype=np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
     return x
+
+
+def load_mask(path, size, preprocess='stretch', aspect_crop=0.0):
+    """与 load_img 完全相同的几何变换，但用 NEAREST、灰边填 0，返回 S×S 的 'L' 图。
+
+    只有几何变换（裁剪 / letterbox）需要同步到 mask；亮度、噪声、模糊不动 mask。
+    """
+    im = Image.open(path).convert('L')
+    if aspect_crop and aspect_crop > 0:
+        w, h = im.size
+        ch = min(h, max(1, int(round(w * aspect_crop))))
+        top = (h - ch) // 2
+        im = im.crop((0, top, w, top + ch))
+    if preprocess == 'letterbox':
+        w, h = im.size
+        s = size / float(max(w, h))
+        nw, nh = max(1, int(round(w * s))), max(1, int(round(h * s)))
+        im = im.resize((nw, nh), Image.NEAREST)
+        canvas = Image.new('L', (size, size), 0)
+        canvas.paste(im, ((size - nw) // 2, (size - nh) // 2))
+        im = canvas
+    else:
+        im = im.resize((size, size), Image.NEAREST)
+    return im
 
 
 def perturb_img(x, brightness=1.0, noise_std=0.0, blur_sigma=0.0, seed=0):
@@ -122,12 +170,32 @@ class Features(torch.nn.Module):
         return torch.cat([f2, f3], dim=1)                   # B,1536,H/8,W/8
 
 
-def embed(feat, neighbors=False):
-    """把特征图转成 patch 描述子：(B, C, h, w) -> (B, h*w, C[*9])"""
-    p = F.avg_pool2d(feat, 3, stride=1, padding=1)          # 3x3 邻域平均，压噪
-    if neighbors:                                           # 论文版：再拼 9 个邻域位移
-        outs = [torch.roll(p, shifts=(i, j), dims=(2, 3))
-                for i in (-1, 0, 1) for j in (-1, 0, 1)]
+def base_desc(feat):
+    """3x3 邻域平均后的基础 patch 描述子：(B,C,h,w)，不做 9 邻域拼接。"""
+    return F.avg_pool2d(feat, 3, stride=1, padding=1)
+
+
+def embed(feat, neighbors=False, pad='zero'):
+    """把特征图转成 patch 描述子：(B, C, h, w) -> (B, h*w, C[*9])
+
+    neighbors=True 时拼接 3x3 邻域描述子。pad 决定边界填充方式：
+      zero   —— 与上游 Unfold(padding=1) 一致，越界位置补 0（默认）
+      replicate —— 镜像/复制边界，避免 0 被当成真实特征
+      roll   —— 旧实现，环形平移（会让左边缘看到右边缘，属于实现缺陷，仅用于复现旧结果）
+    """
+    p = base_desc(feat)                                    # 3x3 邻域平均，压噪
+    if neighbors:
+        outs = []
+        if pad == 'roll':
+            outs = [torch.roll(p, shifts=(i, j), dims=(2, 3))
+                    for i in (-1, 0, 1) for j in (-1, 0, 1)]
+        else:
+            mode = 'replicate' if pad == 'replicate' else 'constant'
+            q = F.pad(p, (1, 1, 1, 1), mode=mode)
+            hh, ww = p.shape[-2:]
+            for i in (-1, 0, 1):
+                for j in (-1, 0, 1):
+                    outs.append(q[:, :, 1 + i:1 + i + hh, 1 + j:1 + j + ww])
         p = torch.cat(outs, dim=1)
     b, c, h, w = p.shape
     return p.reshape(b, c, h * w).permute(0, 2, 1).contiguous(), (h, w)
@@ -162,16 +230,23 @@ def auc(y_true, y_score):
     return float((ranks[y_true == 1].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
 
 
-def corset_random(feats, ratio, seed=0):
+def corset_random(feats, ratio, seed=0, return_idx=False):
     n = feats.shape[0]
     keep = max(1, int(n * ratio))
-    idx = np.random.RandomState(seed).choice(n, size=min(keep, n), replace=False)
-    return feats[np.sort(idx)]
+    idx = np.sort(np.random.RandomState(seed).choice(n, size=min(keep, n), replace=False))
+    return (feats[idx], torch.from_numpy(idx)) if return_idx else feats[idx]
 
 
-def coreset_greedy(feats, k, seed=0, ratio=0.1):
-    """论文的 k-center 贪心选点（先随机降采样再贪心），k 为保留 patch 数。"""
-    feats = corset_random(feats, ratio, seed)
+def coreset_greedy(feats, k, seed=0, ratio=0.1, return_idx=False):
+    """论文的 k-center 贪心选点（先随机降采样再贪心），k 为保留 patch 数。
+
+    return_idx=True 时返回的 idx 是**相对传入 feats 的行号**（已把随机降采样的行号映射回去），
+    这样调用方可以直接用它去原始候选池里取点（例如先选点、再展开 9 邻域）。
+    """
+    if return_idx:
+        feats, sub_idx = corset_random(feats, ratio, seed, return_idx=True)
+    else:
+        feats, sub_idx = corset_random(feats, ratio, seed), None
     n = feats.shape[0]
     k = min(k, n)
     picked = [int(np.random.RandomState(seed).randint(n))]
@@ -181,13 +256,44 @@ def coreset_greedy(feats, k, seed=0, ratio=0.1):
         picked.append(i)
         d = torch.cdist(feats, feats[i].unsqueeze(0)).squeeze(1)
         dist = torch.minimum(dist, d)
-    return feats[torch.tensor(sorted(set(picked)))]
+    sel = torch.tensor(sorted(set(picked)))
+    if return_idx:
+        return feats[sel], sub_idx[sel]
+    return feats[sel]
+
+
+def expand_selected(base_maps, idx, pad='zero'):
+    """按「先在基础描述子上选点」的顺序补回 9 邻域：只在选中的 2000 个位置上展开。
+
+    base_maps: List[(C,h,w)]，每张训练图的基础描述子
+    idx:      LongTensor(N)，全局 patch 下标（image_idx * h*w + spatial_idx）
+    """
+    hh, ww = base_maps[0].shape[-2:]
+    per = hh * ww
+    outs = []
+    for g in idx.tolist():
+        img, pos = divmod(g, per)
+        m = base_maps[img]
+        i, j = divmod(pos, ww)
+        parts = []
+        for di in (-1, 0, 1):
+            for dj in (-1, 0, 1):
+                ii, jj = i + di, j + dj
+                if 0 <= ii < hh and 0 <= jj < ww:
+                    parts.append(m[:, ii, jj])
+                elif pad == 'replicate':
+                    parts.append(m[:, min(max(ii, 0), hh - 1), min(max(jj, 0), ww - 1)])
+                else:  # zero：与 embed(pad='zero') 一致
+                    parts.append(torch.zeros(m.shape[0], dtype=m.dtype))
+        outs.append(torch.cat(parts))
+    return torch.stack(outs)
 
 
 @torch.no_grad()
-def patch_scores(model, mem, x, device, neighbors=False, score_agg='max', blur_sigma=2.0):
+def patch_scores(model, mem, x, device, neighbors=False, score_agg='max', blur_sigma=2.0,
+                 neighbor_pad='zero'):
     feat = model(x.to(device))
-    emb, (h, w) = embed(feat, neighbors)
+    emb, (h, w) = embed(feat, neighbors, neighbor_pad)
     emb = emb.squeeze(0)                                    # N, C
     # 分块算最近邻距离，避免显存炸
     mins = []
@@ -256,52 +362,77 @@ def run_category(args, cat, device):
         json.dump(manifest, f, ensure_ascii=False, indent=2)
 
     # 1) 建记忆库
+    # 9 邻域有两种选点顺序（--neighbor-coreset）：
+    #   base     : 先在 1536 维基础描述子上做 k-center，选完再对选中的 k 个位置补 9 邻域（省内存、名额不被平移副本挤占）
+    #   expanded : 旧实现，先展开成 9x1536 再选点（候选池与选点成本都 ×9）
     t0 = time.time()
-    bank = []
+    use_base = bool(args.neighbors) and args.neighbor_coreset == 'base'
+    bank, base_maps = [], []
     with torch.no_grad():
         for p in train_imgs:
-            feat = model(load_img(p, args.size).to(device))
-            emb, _ = embed(feat, args.neighbors)
-            bank.append(emb.squeeze(0).detach().cpu())
-    bank = torch.cat(bank, 0)
-    if args.greedy:
-        mem = coreset_greedy(bank, args.greedy, args.seed).to(device)
+            feat = model(load_img(p, args.size, args.preprocess, args.aspect_crop).to(device))
+            if use_base:
+                base_maps.append(base_desc(feat).squeeze(0).detach().cpu())
+            else:
+                emb, _ = embed(feat, args.neighbors, args.neighbor_pad)
+                bank.append(emb.squeeze(0).detach().cpu())
+    if use_base:
+        if args.neighbor_pad == 'roll':
+            print(f'[{cat}] 注意：base 选点不支持环形填充，按 zero 处理（--neighbor-pad roll 只在 expanded 模式下生效）')
+        flat = torch.cat([m.reshape(m.shape[0], -1).t() for m in base_maps], 0)   # (N, C)
+        if args.greedy:
+            _, sel = coreset_greedy(flat, args.greedy, args.seed, return_idx=True)
+        else:
+            keep = max(1, int(flat.shape[0] * args.coreset_ratio))
+            sel = torch.tensor(np.sort(np.random.RandomState(args.seed).choice(
+                flat.shape[0], size=min(keep, flat.shape[0]), replace=False)))
+        mem = expand_selected(base_maps, sel, args.neighbor_pad).to(device)
+        bank_desc = f'{tuple(flat.shape)} (base) -> {len(sel)} 点 → 9 邻域展开'
     else:
-        mem = torch.from_numpy(corset_random(bank.numpy(), args.coreset_ratio, args.seed)).to(device)
+        bank = torch.cat(bank, 0)
+        if args.greedy:
+            mem = coreset_greedy(bank, args.greedy, args.seed).to(device)
+        else:
+            mem = torch.from_numpy(corset_random(bank.numpy(), args.coreset_ratio, args.seed)).to(device)
+        bank_desc = f'{tuple(bank.shape)}'
     build_s = time.time() - t0
-    print(f'[{cat}] 训练图 {len(train_imgs)} 张 -> patch {tuple(bank.shape)} -> 记忆库 {tuple(mem.shape)}  ({build_s:.1f}s)')
+    print(f'[{cat}] 训练图 {len(train_imgs)} 张 -> patch {bank_desc} -> 记忆库 {tuple(mem.shape)}  ({build_s:.1f}s)')
 
     # 2) 阈值标定：优先用留出的 calib 图（未参与建库），否则退回建库图自评分
     score_src = calib_imgs if calib_imgs else train_imgs
     train_scores = []
     for i, p in enumerate(score_src):
-        x_cal = load_img(p, args.size)
+        x_cal = load_img(p, args.size, args.preprocess, args.aspect_crop)
         if args.perturb_calibration:
             x_cal = perturb_img(x_cal, args.perturb_brightness, args.perturb_noise,
                                 args.perturb_blur, args.seed + i)
         _, s = patch_scores(model, mem, x_cal, device,
-                            args.neighbors, args.score_agg, args.blur_sigma)
+                            args.neighbors, args.score_agg, args.blur_sigma, args.neighbor_pad)
         train_scores.append(s)
     thr = float(np.percentile(train_scores, args.thr_pct))
 
     # 3) 测试集评分
     y, score, px_true, px_score = [], [], [], []
+    dump_px, dump_mask, dump_path = [], [], []
     lat, top = [], []
     for i, p in enumerate(test_imgs):
         label = 0 if os.path.basename(os.path.dirname(p)) == 'good' else 1
-        x = perturb_img(load_img(p, args.size), args.perturb_brightness,
+        x = perturb_img(load_img(p, args.size, args.preprocess, args.aspect_crop), args.perturb_brightness,
                         args.perturb_noise, args.perturb_blur, args.seed + 100000 + i)
         if device.type == 'cuda':
             torch.cuda.synchronize()
         t = time.time()
         patch, s = patch_scores(model, mem, x, device, args.neighbors, args.score_agg,
-                                args.blur_sigma)
+                                args.blur_sigma, args.neighbor_pad)
         if device.type == 'cuda':
             torch.cuda.synchronize()
         lat.append((time.time() - t) * 1000)
         y.append(label); score.append(s)
         top.append((s, p, patch.detach().cpu()))
-        # 像素级标注
+        # 像素级标注：先把掩码统一取出来，缺掩码时用全零（既包含良品，也容忍个别缺文件的缺陷图），
+        # 这样 px_true/px_score 与 --dump-pixel 的下标永远对得上。
+        hw = patch.shape[-1]
+        mask = None
         if label == 1:
             rel = os.path.relpath(p, test_dir)
             m = os.path.join(gt_dir, os.path.splitext(rel)[0] + '_mask.png')
@@ -311,13 +442,20 @@ def run_category(args, cat, device):
                 m = os.path.join(gt_dir, os.path.dirname(rel),
                                  os.path.splitext(os.path.basename(rel))[0] + '.png')
             if os.path.exists(m):
-                hw = patch.shape[-1]
-                mask = np.asarray(Image.open(m).convert('L').resize((hw, hw), Image.NEAREST)) > 128
-                px_true.append(mask.reshape(-1))
-                px_score.append(patch.detach().cpu().numpy().reshape(-1))
-        else:
-            px_true.append(np.zeros(args.size // 8 * (args.size // 8), bool))
-            px_score.append(patch.detach().cpu().numpy().reshape(-1))
+                if args.aspect_crop > 0 or args.preprocess != 'stretch':
+                    # 几何变换必须和图像一致，否则 pixel AUROC 的绝对值不可用
+                    mimg = load_mask(m, args.size, args.preprocess, args.aspect_crop)
+                    mask = np.asarray(mimg.resize((hw, hw), Image.NEAREST)) > 128
+                else:
+                    mask = np.asarray(Image.open(m).convert('L').resize((hw, hw), Image.NEAREST)) > 128
+        if mask is None:
+            mask = np.zeros((hw, hw), bool)
+        px_true.append(mask.reshape(-1))
+        px_score.append(patch.detach().cpu().numpy().reshape(-1))
+        if args.dump_pixel:
+            dump_px.append(patch.detach().cpu().numpy().astype(np.float16))
+            dump_mask.append(mask)
+            dump_path.append(os.path.relpath(p, test_dir))
 
     img_auc = auc(y, score)
     px_auc = auc(np.concatenate(px_true), np.concatenate(px_score)) if px_true else float('nan')
@@ -330,6 +468,14 @@ def run_category(args, cat, device):
     fpr = fp / max(1, fp + sum(1 for a, b in zip(pred, y) if a == 0 and b == 0))
 
     # 4) 存热力图（分数最高的 3 张）
+    if args.dump_pixel:
+        os.makedirs(args.dump_pixel, exist_ok=True)
+        fp = os.path.join(args.dump_pixel, f'{cat}.npz')
+        np.savez_compressed(fp, scores=np.stack(dump_px), masks=np.stack(dump_mask),
+                            paths=np.array(dump_path), labels=np.array(y), thr=np.float32(thr),
+                            size=np.int32(args.size))
+        print(f'[dump] 像素分数图 {len(dump_px)} 张 → {fp}')
+
     os.makedirs(os.path.join(args.out, 'heatmaps'), exist_ok=True)
     for s, p, patch in sorted(top, key=lambda z: -z[0])[:3]:
         pm = patch.numpy()
@@ -340,6 +486,7 @@ def run_category(args, cat, device):
     os.makedirs(os.path.join(args.out, 'scores'), exist_ok=True)
     with open(os.path.join(args.out, 'scores', f'{cat}.json'), 'w', encoding='utf-8') as f:
         json.dump(dict(category=cat, thr=thr, thr_pct=args.thr_pct, score_agg=args.score_agg,
+                       preprocess=args.preprocess, aspect_crop=args.aspect_crop,
                        blur_sigma=args.blur_sigma, train_limit=args.train_limit,
                        train_seed=args.seed + 1,
                        perturb=dict(brightness=args.perturb_brightness,
@@ -354,6 +501,9 @@ def run_category(args, cat, device):
     res = dict(category=cat, n_train=len(train_imgs), n_calib=len(calib_imgs), n_test=len(test_imgs),
                # ---- 配置列：没有这些，几份 results*/ 目录事后无法区分 ----
                size=args.size, neighbors=int(bool(args.neighbors)),
+               neighbor_coreset=(args.neighbor_coreset if args.neighbors else ''),
+               neighbor_pad=(args.neighbor_pad if args.neighbors else ''),
+               preprocess=args.preprocess, aspect_crop=args.aspect_crop,
                imagenet_norm=int(bool(getattr(args, 'imagenet_norm', False))),
                coreset='greedy' if args.greedy else 'random',
                coreset_k=(args.greedy or None),  # 请求的 k；random 模式下为 None
@@ -384,7 +534,17 @@ def main():
     ap.add_argument('--data', required=True, help='MVTec AD 根目录，里面有 bottle/、cable/ 等')
     ap.add_argument('--category', default='bottle', help='类别名，或 all')
     ap.add_argument('--size', type=int, default=256)
+    ap.add_argument('--preprocess', choices=['stretch', 'letterbox'], default='stretch',
+                    help='resize 策略：stretch=直接拉伸；letterbox=等比缩放+灰边补齐（方图输入时两者等价）')
+    ap.add_argument('--aspect-crop', type=float, default=0.0,
+                    help='先中心裁剪成 h/w=该比例再预处理，用于模拟非方形相机（0=不裁）')
     ap.add_argument('--neighbors', action='store_true', help='论文版 9 邻域拼接（显存占用 x9）')
+    ap.add_argument('--neighbor-coreset', choices=['base', 'expanded'], default='base',
+                    help='9 邻域的选点顺序：base=先在基础描述子上选点再展开（默认，省内存）；'
+                         'expanded=旧实现，先展开再选点（与历史 results_neigh 可比）')
+    ap.add_argument('--neighbor-pad', choices=['zero', 'replicate', 'roll'], default='zero',
+                    help='9 邻域边界填充：zero=与上游 Unfold(padding=1) 一致（默认）；'
+                         'replicate=复制边界；roll=旧的环形平移（有环绕缺陷，仅用于复现旧结果）')
     ap.add_argument('--coreset-ratio', type=float, default=0.1, help='随机抽样的记忆库比例')
     ap.add_argument('--greedy', type=int, default=0, help='k-center 贪心保留 patch 数，0=用随机抽样')
     ap.add_argument('--thr-pct', type=float, default=99.0, help='阈值取训练集分数的百分位，漏检优先就调高')
@@ -415,6 +575,8 @@ def main():
     ap.add_argument('--weights', default='', help='本地 wide_resnet50_2 权重文件路径，联网下载不了时用')
     ap.add_argument('--cpu', action='store_true')
     ap.add_argument('--gpu', type=int, default=0, help='指定 GPU 序号，默认 0')
+    ap.add_argument('--dump-pixel', default='',
+                    help='把逐图像素分数图 + GT 掩码存成 <目录>/<类别>.npz，供 tools/pro_aupro.py 算 PRO/AUPRO')
     args = ap.parse_args()
 
     if args.split_seed is None:

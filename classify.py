@@ -17,7 +17,12 @@
     python classify.py eval  --bank experiment_data/04_memory_banks/banks/bottle.npz --data E:/MVTec --category bottle
 
 阈值口径（关键，面试会问）：
-    thr_ok = 留出良品分数的 P(1-fpr) 分位 —— 直接对应「良品过杀率 fpr」
+    thr_ok 默认 = 留出良品分数的 P(1-fpr) 分位 —— 经验分位，对应「名义」良品过杀率 fpr。
+    加 --conformal 改用 split-conformal：k = ceil((n+1)(1-fpr))，阈值取第 k 小的标定分数，
+      可给出「良品过杀 <= fpr」的统计保证（可交换性假设下）。代价是 n 张标定图最多只能
+      保证到 1/(n+1) —— 要 0.5% 至少需要 199 张标定良品，本仓库各类只有 18~117 张，
+      所以 0.5% 在现有 split 下不可达，报表会逐类打印真正可达的水平。
+      详见 tools/conformal_threshold.py 与 docs/conformal-thresholds.md。
     thr_ng = 留出良品分数的 P(1-fpr/20) 分位，或用 thr_ok * --ng-ratio
     两者之间 = 灰区（复检）。灰区越宽，漏检越低、人工量越大 —— 这是一条可调的产线曲线。
 """
@@ -143,6 +148,34 @@ def verdict(score, thr_ok, thr_ng):
     return 'NG'
 
 
+def conformal_quantile(scores, alpha):
+    """split-conformal 阈值：第 k 小的标定分数，k = ceil((n+1)(1-alpha))。
+
+    返回 (thr, alpha_effective, reachable)。n 张标定图最多只能保证到 1/(n+1)，
+    达不到目标 alpha 时 alpha_effective 会大于 alpha（reachable=False），
+    此时阈值退化为 max(calib)——这是「数据只支持到这个水平」的诚实回答，
+    而不是假装 0.5% 达标。
+    """
+    s = np.sort(np.asarray(scores, dtype=np.float64))
+    n = len(s)
+    if n == 0:
+        raise ValueError('calib 为空')
+    alpha_eff = max(float(alpha), 1.0 / (n + 1))
+    k = int(np.ceil((n + 1) * (1.0 - alpha_eff)))
+    k = min(max(k, 1), n)
+    return float(s[k - 1]), alpha_eff, bool(alpha_eff <= alpha + 1e-12)
+
+
+def thr_ok_from(cal_scores, fpr, conformal):
+    """按口径算 thr_ok；conformal 口径下打印可达水平（面试想听的就是这句）。"""
+    if conformal:
+        thr, alpha_eff, reach = conformal_quantile(cal_scores, fpr)
+        print(f'  conformal 阈值 {thr:.2f}（n_calib={len(cal_scores)}，可达 {alpha_eff:.2%}'
+              f'{"" if reach else "，未达目标 " + format(fpr, ".2%")}）')
+        return thr
+    return float(np.percentile(cal_scores, 100 * (1 - fpr)))
+
+
 def _pick_weights(a, meta):
     """优先命令行给的权重，其次复用建库时记录的那份（不然会去联网下载 torchvision 权重）。"""
     for w in (a.weights, meta.get('weights')):
@@ -212,7 +245,7 @@ def cmd_build(a):
     print('标定阈值…', flush=True)
     cal_scores = np.array([image_patch_scores(model, bank, p, a.size, device,
                                               a.neighbors, a.score_agg)[1] for p in calib])
-    thr_ok = float(np.percentile(cal_scores, 100 * (1 - a.fpr)))
+    thr_ok = thr_ok_from(cal_scores, a.fpr, getattr(a, 'conformal', False))
     if a.ng_ratio > 0:
         thr_ng = thr_ok * a.ng_ratio
     else:
@@ -226,6 +259,7 @@ def cmd_build(a):
                 calib_ratio=a.calib_ratio, fpr=a.fpr, ng_ratio=a.ng_ratio, seed=a.seed,
                 imagenet_norm=bool(a.imagenet_norm), dim=int(bank.shape[1]),
                 thr_ok=thr_ok, thr_ng=thr_ng, n_used=len(used), n_calib=len(calib),
+                threshold_method='conformal' if getattr(a, 'conformal', False) else 'percentile',
                 calib_median=float(np.median(cal_scores)), weights=a.weights or 'torchvision IMAGENET1K_V1')
     out = os.path.join(a.out, f'{a.category}.npz')
     np.savez_compressed(out, bank=bank.cpu().numpy(),
@@ -372,6 +406,48 @@ def cmd_eval(a):
 
 
 # ---------------------------------------------------------------- report（离线：直接吃 demo 落盘的逐图分数）
+def _cost_split(tests):
+    """按路径排序后隔一张切一刀：一半做 validation（选工作点），另一半完全不参与选择。
+
+    切分是确定性的（不依赖随机数），换机器结果一样；类别内交替取样，避免把同类缺陷全塞进一边。
+    """
+    ts = sorted(tests, key=lambda t: t['path'])
+    return ts[1::2], ts[0::2]
+
+
+def triage_grid(calib, tests, fpr_grid, ng_grid):
+    """扫 (目标过杀, 灰区倍率) 二维网格，只数四个量：漏检、过杀、良品复核、缺陷复核。"""
+    out = []
+    d = [t for t in tests if int(t['label'])]
+    g = [t for t in tests if not int(t['label'])]
+    for fpr in fpr_grid:
+        thr_ok = float(np.percentile(calib, 100 * (1 - fpr))) if len(calib) else 0.0
+        for ng in ng_grid:
+            thr_ng = thr_ok * ng
+            out.append(dict(
+                fpr=fpr, ng=ng, nd=len(d), ngood=len(g),
+                miss=sum(1 for t in d if float(t['score']) < thr_ok),
+                fa=sum(1 for t in g if float(t['score']) >= thr_ng),
+                revd=sum(1 for t in d if thr_ok <= float(t['score']) < thr_ng),
+                revg=sum(1 for t in g if thr_ok <= float(t['score']) < thr_ng)))
+    return out
+
+
+def cell_cost(acc, cost, prev):
+    """把四类计数按缺陷先验 prev 折成「每件产品当量」成本。
+
+    刻意不用 test 集的缺陷占比：MVTec test 集故意富集缺陷（本机 73%），
+    直接乘会把「漏检更贵」放大 70 倍，选点必然滑向激进侧。
+    """
+    c_fn, c_fp, c_rev = cost
+    miss_r = acc['miss'] / acc['nd'] if acc['nd'] else 0.0
+    fa_r = acc['fa'] / acc['ngood'] if acc['ngood'] else 0.0
+    revd_r = acc['revd'] / acc['nd'] if acc['nd'] else 0.0
+    revg_r = acc['revg'] / acc['ngood'] if acc['ngood'] else 0.0
+    return (prev * (c_fn * miss_r + c_rev * revd_r)
+            + (1 - prev) * (c_fp * fa_r + c_rev * revg_r))
+
+
 def cmd_report(a):
     """不重算特征，直接读 results_*/scores/*.json 里的逐图分数做三档判定。
 
@@ -382,6 +458,7 @@ def cmd_report(a):
         raise SystemExit(f'{a.scores} 下没有 scores/*.json，先跑 patchcore_demo.py --out 同目录')
 
     rows_all, lines, skipped = [], [], []
+    alpha_map = {}
     print(f'{"类别":<12}{"良品":>5}{"缺陷":>5}{"thr_ok":>8}{"过杀":>8}{"良品复核":>10}{"漏检":>8}{"复核量":>8}')
     print('-' * 74)
     for p in files:
@@ -395,7 +472,11 @@ def cmd_report(a):
                   f'标定 {len(calib)} 张（<10，分位数不可信）、测试 {len(tests)} 条')
             skipped.append(dict(category=j.get('category'), reason='calib<10', n_calib=len(calib), n_test=len(tests)))
             continue
-        thr_ok = float(np.percentile(calib, 100 * (1 - a.fpr)))
+        if a.conformal:
+            thr_ok, alpha_eff, _ = conformal_quantile(calib, a.fpr)
+            alpha_map[j['category']] = alpha_eff
+        else:
+            thr_ok = float(np.percentile(calib, 100 * (1 - a.fpr)))
         thr_ng = thr_ok * a.ng_ratio
         g = [t for t in tests if int(t['label']) == 0]
         d = [t for t in tests if int(t['label']) != 0]
@@ -419,6 +500,17 @@ def cmd_report(a):
         print(f'\n没有可评估的类别：{len(skipped)} 个文件全被跳过（原因见上）。')
         print('冒烟/小样本请用 classify.py eval（会重新建库标定），report 只吃完整跑的 scores。')
         return
+
+    if a.conformal:
+        bad = sorted((c, ae) for c, ae in alpha_map.items() if ae > a.fpr + 1e-12)
+        if bad:
+            need = int(np.ceil(1 / a.fpr - 1))
+            print(f'\n⚠ conformal 口径：{len(bad)}/{len(alpha_map)} 类撑不起 {a.fpr:.2%}'
+                  f'（至少需要 {need} 张标定良品），实际只能保证 1/(n+1)：')
+            for c, ae in bad:
+                print(f'    {c:<12} 可达 {ae:.2%}')
+        else:
+            print(f'\nconformal 口径：{len(alpha_map)}/{len(alpha_map)} 类均达到 {a.fpr:.2%}')
 
     # 汇总：所有类合并成一个混淆矩阵（每类用自己的阈值）
     G = [r for r in rows_all if r[1] == 0]
@@ -480,6 +572,82 @@ def cmd_report(a):
     if skipped:
         print(f'\n跳过 {len(skipped)} 类（未计入汇总）：' + '、'.join(s['category'] for s in skipped))
 
+    if a.cost:
+        cost = tuple(float(x) for x in a.cost.replace('，', ',').split(','))
+        if len(cost) != 3:
+            raise SystemExit('--cost 需要三个数：漏检,过杀,复核（例：--cost 100,10,1）')
+        prev = a.prevalence
+        fpr_grid = (0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.10, 0.20)
+        ng_grid = (1.0, 1.1, 1.2, 1.5, 2.0)
+        per_class = []
+        for p in files:
+            j = json.load(open(p, encoding='utf-8'))
+            calib = np.asarray(j.get('calib') or [], dtype=np.float64)
+            ts = j.get('test') or []
+            if len(calib) < 10 or not ts:
+                continue
+            val, _ = _cost_split(ts)
+            per_class.append((calib, val, ts))
+
+        def aggregate(idx):
+            grid = {}
+            for rec in per_class:
+                for r in triage_grid(rec[0], rec[idx], fpr_grid, ng_grid):
+                    key = (r['fpr'], r['ng'])
+                    acc = grid.setdefault(key, dict(nd=0, ngood=0, miss=0, fa=0, revd=0, revg=0))
+                    for k in acc:
+                        acc[k] += r[k]
+            return grid
+
+        val_raw = aggregate(1)      # 只用来选点
+        all_raw = aggregate(2)      # 全部 test 图，只报一次
+        val_c = {k: cell_cost(v, cost, prev) for k, v in val_raw.items()}
+        best = min(val_c, key=lambda k: val_c[k])
+        acc = all_raw[best]
+        pct = lambda x, n: f'{x / n:.1%}' if n else '-'
+        n_all = acc['nd'] + acc['ngood']
+        print(f'\n成本模型（假设：漏检 {cost[0]:g} / 过杀 {cost[1]:g} / 复核 {cost[2]:g}，缺陷先验 {prev:.2%}）')
+        print('  单位「每件产品当量」；权重与先验都是业务假设，下面给出敏感度与先验扫描。')
+        print(f'  validation 选点：目标过杀 {best[0]:.2%} × 灰区 {best[1]:g}× → {val_c[best]:.4f}/件')
+        print(f'  锁定后 test（{n_all} 张）：{cell_cost(acc, cost, prev):.4f}/件'
+              f'｜漏检 {pct(acc["miss"], acc["nd"])}｜过杀 {pct(acc["fa"], acc["ngood"])}'
+              f'｜复核 {pct(acc["revd"] + acc["revg"], n_all)}')
+        rl = (prev * (acc['revd'] / acc['nd'] if acc['nd'] else 0.0)
+              + (1 - prev) * (acc['revg'] / acc['ngood'] if acc['ngood'] else 0.0))
+        print(f'  产线口径复核负荷（按先验 {prev:.2%} 加权，不是 test 集构成）：{rl:.1%}'
+              + (f'，约每 {1 / rl:.1f} 件 1 件进复检' if rl > 0 else ''))
+        print('\n  validation 成本热力图（行=目标过杀，列=灰区倍率，单位 /件）')
+        print('    ' + ''.join(f'{ng:>12g}×' for ng in ng_grid))
+        for fpr in fpr_grid:
+            cells = ''.join(f'{val_c[(fpr, ng)]:>13.4f}' for ng in ng_grid)
+            star = '  *' if fpr == best[0] else ''
+            print(f'  {fpr:>7.2%}' + cells + star)
+        print('\n  漏检率 / 过杀率在网格上的走势（选完点再看代价）：')
+        print(f'{"目标过杀":>9}{"灰区":>7}{"漏检":>9}{"过杀":>8}{"复核":>8}')
+        for fpr in fpr_grid:
+            r = all_raw[(fpr, best[1])]
+            print(f'{fpr:>9.2%}{best[1]:>7g}{pct(r["miss"], r["nd"]):>9}'
+                  f'{pct(r["fa"], r["ngood"]):>8}{pct(r["revd"] + r["revg"], n_all):>8}')
+        print('\n  先验如何改变最优工作点（每种先验各自在 validation 上重选）：')
+        for pv in (0.001, 0.005, 0.01, 0.05, 0.10, 0.30):
+            vc = {k: cell_cost(v, cost, pv) for k, v in val_raw.items()}
+            k = min(vc, key=lambda kk: vc[kk])
+            st = all_raw[k]
+            print(f'    先验 {pv:>6.2%} → 过杀 {k[0]:.2%} × 灰区 {k[1]:g}×'
+                  f'｜test 漏检 {pct(st["miss"], st["nd"])}｜test 过杀 {pct(st["fa"], st["ngood"])}'
+                  f'｜成本 {cell_cost(st, cost, pv):.4f}/件')
+        print('\n  权重敏感度（换权重后 validation 重选，先验固定用上面的假设）：')
+        for name, w in (('漏检 ×10', (cost[0] * 10, cost[1], cost[2])),
+                        ('过杀 ×10', (cost[0], cost[1] * 10, cost[2])),
+                        ('复核 ×10', (cost[0], cost[1], cost[2] * 10))):
+            vc = {k: cell_cost(v, w, prev) for k, v in val_raw.items()}
+            k = min(vc, key=lambda kk: vc[kk])
+            st = all_raw[k]
+            print(f'    {name:<10} → 过杀 {k[0]:.2%} × 灰区 {k[1]:g}×'
+                  f'｜test 漏检 {pct(st["miss"], st["nd"])}｜test 过杀 {pct(st["fa"], st["ngood"])}'
+                  f'｜成本 {cell_cost(st, w, prev):.4f}/件')
+        print('  解读：漏检权重变大 → 选点左移（更容忍过杀）；过杀权重变大 → 选点右移。')
+
     if a.out:
         os.makedirs(a.out, exist_ok=True)
         p = os.path.join(a.out, 'triage_all.json')
@@ -503,6 +671,7 @@ def main():
     b.add_argument('--greedy', type=int, default=2000, help='k-center 保留 patch 数')
     b.add_argument('--calib-ratio', type=float, default=0.3)
     b.add_argument('--fpr', type=float, default=0.005, help='允许的良品过杀率，决定 thr_ok 分位')
+    b.add_argument('--conformal', action='store_true', help='用 split-conformal 分位（统计保证），替代经验分位')
     b.add_argument('--score-agg', choices=['max', 'top5'], default='max',
                    help='校准和推理共用的图像分数聚合方式')
     b.add_argument('--ng-ratio', type=float, default=0.0, help='thr_ng=thr_ok*该倍数；0=按 fpr/20 分位')
@@ -536,7 +705,12 @@ def main():
     rp = sub.add_parser('report', help='离线三档判定：直接读 scores/*.json，不重算特征')
     rp.add_argument('--scores', default='experiment_data/00_baselines/results_best/scores', help='含 <类别>.json 的目录')
     rp.add_argument('--fpr', type=float, default=0.005, help='目标良品过杀率（决定 thr_ok 分位）')
+    rp.add_argument('--conformal', action='store_true', help='用 split-conformal 分位，并逐类报告真正可达的过杀水平')
     rp.add_argument('--ng-ratio', type=float, default=1.2, help='thr_ng = thr_ok × 该倍数（灰区宽度）')
+    rp.add_argument('--cost', default=None, metavar='FN,FP,REV',
+                   help='成本模式：漏检/过杀/复核的权重（如 100,10,1），扫阈值分位×灰区宽度')
+    rp.add_argument('--prevalence', type=float, default=0.01,
+                   help='成本模式下的缺陷先验（每件产品是缺陷的概率），默认 1%%')
     rp.add_argument('--out', default='experiment_data/03_triage')
     rp.set_defaults(func=cmd_report)
 

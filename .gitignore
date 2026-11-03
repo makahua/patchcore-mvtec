@@ -45,3 +45,9 @@ triage_smoke/
 _reltest/
 _skiptest/
 results_verify_bottle/
+
+experiment_data/03_triage/*.json
+
+# PRO/AUPRO 用的逐图像素分数图：5 MB 级、由 --dump-pixel 再生成
+experiment_data/05_indexes/pixel_dumps/
+experiment_data/_tmp*/

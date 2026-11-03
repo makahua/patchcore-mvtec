@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  metrics:
+    name: metrics + report (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # 只装 numpy + pytest：23 条测试与离线报表都不需要 torch。
+      # 这本身就是个卖点——钉住面试数字的那套测试 10 秒内跑完。
+      - name: Install (numpy only)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pytest
+
+      - name: Syntax check
+        run: python -m py_compile patchcore_demo.py classify.py analyze.py tools/latency_breakdown.py tools/conformal_threshold.py tools/threshold_stability.py tools/pro_aupro.py tools/check_links.py tools/index_results.py
+
+      - name: Unit tests
+        run: python -m pytest tests -q
+
+      - name: Offline report smoke test
+        # 读仓库里已提交的 scores，不需要数据集/权重/GPU；
+        # 顺便钉住 README 的面口径数字：macro 0.9805 / pooled 0.8812。
+        run: |
+          python classify.py report --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2 | tee report.txt
+          grep -q '0.9805' report.txt
+          grep -q '0.8812' report.txt
+          echo 'report numbers match README'
+
+      - name: Results index is up to date
+        # 索引是给人的视图，磁盘上的 results.csv 才是事实；两者漂了就让 CI 红
+        run: python tools/index_results.py --check
+
+  docs:
+    name: docs link check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check relative markdown links
+        run: python tools/check_links.py --root .

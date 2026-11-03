@@ -130,6 +130,61 @@ def test_bank_dims_rejects_mismatch():
         raise AssertionError('维度不自洽时应当报错')
 
 
+# ---------------------------------------------------------------- 成本模型自检
+def _mk(scores, labels):
+    return [dict(path=f'x/{i:03d}.png', label=int(y), score=float(sc))
+            for i, (sc, y) in enumerate(zip(scores, labels))]
+
+
+def test_triage_grid_threshold_semantics():
+    """三档判定的边界必须是「>=thr_ng 判 NG、[thr_ok,thr_ng) 进复核、<thr_ok 判 OK」。
+
+    这里刻意让分数正好压在阈值两侧附近：阈值语义一旦写成 > 或 >= 混用，
+    过杀/漏检会整体偏移一张，肉眼看报表发现不了。
+    """
+    from classify import triage_grid
+
+    calib = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+    tests = _mk([5.0, 3.0, 1.0, 0.5], [0, 1, 1, 0])
+    # fpr=0.2 → thr_ok = P80 = 3.2；ng=1.5 → thr_ng = 4.8
+    r = triage_grid(calib, tests, (0.2,), (1.5,))[0]
+    assert r['nd'] == 2 and r['ngood'] == 2
+    assert r['miss'] == 2            # 两个缺陷 3.0、1.0 都低于 3.2
+    assert r['fa'] == 1              # 良品 5.0 >= 4.8
+    assert r['revd'] == 0 and r['revg'] == 0
+
+
+def test_triage_grid_gray_zone_moves_images_out_of_ng():
+    """把灰区拉宽，过杀必须减少、复核必须增加——这是灰区唯一的实际作用。"""
+    from classify import triage_grid
+
+    calib = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+    tests = _mk([5.0, 3.0, 1.0, 0.5], [0, 1, 1, 0])
+    narrow = triage_grid(calib, tests, (0.2,), (1.5,))[0]
+    wide = triage_grid(calib, tests, (0.2,), (2.0,))[0]
+    assert wide['fa'] == 0
+    assert wide['revg'] == 1 and wide['revd'] == 0
+
+
+def test_cell_cost_matches_formula():
+    """成本必须严格等于「先验 × 缺陷侧 + (1-先验) × 良品侧」，含复核项。"""
+    from classify import cell_cost
+
+    acc = dict(nd=10, ngood=100, miss=2, fa=5, revd=1, revg=10)
+    expect = 0.01 * (100 * 0.2 + 1 * 0.1) + 0.99 * (10 * 0.05 + 1 * 0.1)
+    assert abs(cell_cost(acc, (100, 10, 1), 0.01) - expect) < 1e-12
+
+
+def test_cell_cost_endpoints_match_baselines():
+    """全部漏检 = 先验×C_fn；全部过杀 = (1-先验)×C_fp。两个端点必须对得上。"""
+    from classify import cell_cost
+
+    all_miss = dict(nd=100, ngood=100, miss=100, fa=0, revd=0, revg=0)
+    all_fa = dict(nd=100, ngood=100, miss=0, fa=100, revd=0, revg=0)
+    assert abs(cell_cost(all_miss, (100, 10, 1), 0.01) - 0.01 * 100) < 1e-12
+    assert abs(cell_cost(all_fa, (100, 10, 1), 0.01) - 0.99 * 10) < 1e-12
+
+
 # ---------------------------------------------------------------- 手动跑
 if __name__ == '__main__':
     tests = [(k, v) for k, v in sorted(globals().items())
