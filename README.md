@@ -5,8 +5,10 @@
 
 > **状态：已在真实 MVTec AD（15 类 / 1,725 张测试图）上跑完整流程，本文所有数字均为本机实测，可用 `analyze.py` 与 `classify.py report` 复现。**
 > 环境：Python 3.12 + torch 2.7.0 (CUDA 12.8) + torchvision 0.22.0，单卡 RTX 3050 Laptop（4 GB 显存）。
-> 主配置（`--greedy 2000 --size 320`，见「优化实验：五种配置对比」）：**image AUROC 0.9805 / pixel AUROC 0.9709 / PR-AUC 0.993 / 19.7 ms 每张 / 显存峰值 190 MB / 记忆库 2,000 patch**。
+> 主配置（`--greedy 2000 --size 320`，见「优化实验：五种配置对比」）：**image AUROC 0.9805 / pixel AUROC 0.9709 / image-level PR-AUC 0.993 / 推理与最近邻评分均值 19.7 ms / 显存峰值约 190 MB / 记忆库 2,000 patch**。延迟不含图像读取、建库和标定。
 > 权重不是 torchvision 原版 `IMAGENET1K_V1`，而是 `timm/wide_resnet50_2.racm_in1k`（RandAugment+Mixup 重训）转出的 state_dict，见第 3 步，与论文口径可能有千分位差异。
+
+> **复现来源与口径**：算法来自 PatchCore 论文 *Towards Total Recall in Industrial Anomaly Detection*（Roth et al., CVPR 2022；[arXiv:2106.08265](https://arxiv.org/abs/2106.08265)），参考 [AWS 官方实现](https://github.com/amazon-science/patchcore-inspection)。本项目代码按论文思路独立实现；并非逐行移植或完全对齐官方评测。本文 `image AUROC 0.9805` 指 15 类 macro 均值；同一批图像 pooled 结果是 0.8812。官方报告数字只有在 backbone、权重、输入和评测口径匹配时才可直接比较。
 
 ---
 
@@ -16,7 +18,7 @@
 这个 demo 正好证明三件事：
 1. 你懂「只有 good 样本」这种数据条件该怎么建模；
 2. 你会做记忆库 + 最近邻检索这一套工程实现（不是只会调 YOLO）；
-3. 你能给出 image-level AUROC / pixel-level AUROC / 单张耗时三组指标，并按产线策略调阈值。
+3. 你能给出 image-level AUROC / pixel-level AUROC / 推理与最近邻评分耗时，并按产线策略调阈值。
 
 ---
 
@@ -24,10 +26,10 @@
 
 ```powershell
 # 建议新建 conda 环境，别污染毕设那个
-conda create -n ad python=3.10 -y
+conda create -n ad python=3.12 -y   # 本项目实测 3.12；3.10 / 3.11 也能跑
 conda activate ad
 
-# 有 NVIDIA 显卡（你 RTX 5070 应该支持 cu121+）
+# 有 NVIDIA 显卡（按本机 CUDA/驱动选择 PyTorch 安装命令）
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 # 没显卡就装 CPU 版：
 # pip install torch torchvision
@@ -38,11 +40,13 @@ pip install numpy pillow matplotlib tqdm
 验证：`python -c "import torch;print(torch.__version__, torch.cuda.is_available())"`
 
 > **只想复算三档表？上面这一整节都可以跳过。** `classify.py report` 只依赖 numpy，
-> 装个 numpy 就能读 `results_best/scores/*.json` 复现 README 里的 15 行与两个 AUC 口径（1 秒）。
+> 装个 numpy 就能读 `experiment_data/00_baselines/results_best/scores/*.json` 复现 README 里的 15 行与两个 AUC 口径（1 秒）。
 > 需要 torch 的只有 `build / infer / eval` 三个子命令和 `patchcore_demo.py` 本身。
 
-> 首次运行会自动下载 wide_resnet50_2 的 ImageNet 权重（约 250MB）。下载慢就设镜像：
-> `set TORCH_HOME=D:\torch_cache` 然后用迅雷下权重放到该目录，或开代理。
+> **权重不走 torchvision 的自动下载。** 本机 `download.pytorch.org` 不通（TLS 直接断），实际做法是从
+> hf-mirror 下 timm 的 `wide_resnet50_2.racm_in1k`（275 MB safetensors）再转成 state_dict，见第 3 步。
+> 只有在**省略** `--weights` 时，脚本才回退到 torchvision 自带的 `IMAGENET1K_V1` 自动下载。
+> 想换缓存目录就设 `TORCH_HOME`（本机放在 `E:\torch_cache`；注意本机没有 D 盘）。
 
 ---
 
@@ -56,11 +60,11 @@ pip install numpy pillow matplotlib tqdm
 
 ```powershell
 # 断点续传，断了重跑同一条命令即可续上
-New-Item -ItemType Directory -Force D:\MVTec_dl | Out-Null
-curl.exe -L -C - -o D:\MVTec_dl\mvtec.zip "https://hf-mirror.com/datasets/hdtech/mvtech_anomaly_detection/resolve/main/mvtech_anomaly_detection.zip"
+New-Item -ItemType Directory -Force E:\MVTec_dl | Out-Null
+curl.exe -L -C - -o E:\MVTec_dl\mvtec.zip "https://hf-mirror.com/datasets/hdtech/mvtech_anomaly_detection/resolve/main/mvtech_anomaly_detection.zip"
 
 # 下完解压（约 5GB，Expand-Archive 慢但稳；有 7-Zip 就用 7z x）
-Expand-Archive D:\MVTec_dl\mvtec.zip -DestinationPath D:\MVTec_dl\x
+Expand-Archive E:\MVTec_dl\mvtec.zip -DestinationPath E:\MVTec_dl\x
 ```
 
 **② hf-mirror 原始目录版（文件多、可逐个续传，适合网络很抖）**
@@ -68,9 +72,9 @@ Expand-Archive D:\MVTec_dl\mvtec.zip -DestinationPath D:\MVTec_dl\x
 ```powershell
 pip install -U "huggingface_hub[cli]"
 $env:HF_ENDPOINT = "https://hf-mirror.com"
-hf download --repo-type dataset hdtech/mvtech_anomaly_detection --local-dir D:\MVTec_dl
+hf download --repo-type dataset hdtech/mvtech_anomaly_detection --local-dir E:\MVTec_dl
 # 或换成逐文件的版本：
-# hf download --repo-type dataset TheoM55/mvtec_anomaly_detection --local-dir D:\MVTec_dl
+# hf download --repo-type dataset TheoM55/mvtec_anomaly_detection --local-dir E:\MVTec_dl
 ```
 
 **③ OpenDataLab（上海 AI Lab，国内官方副本，需登录拿 token）**
@@ -121,19 +125,19 @@ MVTec/
 cd patchcore-demo
 
 # ① 冒烟测试：每类 10 张，确认跑得通（1 分钟）
-python patchcore_demo.py --data D:/MVTec --category bottle --limit 10
+python patchcore_demo.py --data E:/MVTec --category bottle --limit 10 --weights torch_cache/wide_resnet50_2_timm.pth
 
 # ② 正式跑 bottle
-python patchcore_demo.py --data D:/MVTec --category bottle
+python patchcore_demo.py --data E:/MVTec --category bottle --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --weights torch_cache/wide_resnet50_2_timm.pth --out experiment_data/01_mvtec_gpu/runs/reproduce
 
 # ③ 全类别（15 类，GPU 上约 10-15 分钟）
-python patchcore_demo.py --data D:/MVTec --category all
+python patchcore_demo.py --data E:/MVTec --category all --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --weights torch_cache/wide_resnet50_2_timm.pth --out experiment_data/01_mvtec_gpu/runs/reproduce
 ```
 
 产出：
-- `results/results.csv` ← **简历上的数字全从这里抄**
-- `results/results.json`
-- `results/heatmaps/*.png` ← 异常热力图，README 里放 2 张，很有说服力
+- `experiment_data/00_baselines/results/results.csv` ← **简历上的数字全从这里抄**
+- `experiment_data/00_baselines/results/results.json`
+- `experiment_data/00_baselines/results_best/heatmaps/*.png` ← 异常热力图，README 里放 2 张，很有说服力
 
 ### 实测结果（本机 RTX 3050 Laptop，256×256，随机 coreset 10%，`--thr-pct 99`）
 
@@ -141,7 +145,7 @@ python patchcore_demo.py --data D:/MVTec --category all
 |---|---|---|
 | image-level AUROC | **1.0000** | **0.9703** |
 | pixel-level AUROC | 0.9842 | **0.9701** |
-| 单张耗时 | 31.9 ms | 35.7 ms（p95 39.8） |
+| 推理与最近邻评分均值（不含读图/建库/标定） | 31.9 ms | 35.7 ms（各类均值） |
 | 记忆库 patch 数 | 21401 | 24773 |
 | 显存峰值 | 471 MB | 761 MB |
 | 建库耗时 | 9.0 s | 3.3~24.5 s |
@@ -167,23 +171,22 @@ python patchcore_demo.py --data D:/MVTec --category all
 初版把阈值取成「**训练集自评分** P99」。问题是记忆库就是从这些训练图建的，**每张图自己的 patch 就在库里**，
 最近邻距离趋近 0 → 训练分数整体偏低 → 阈值定得太低 → 测 good 图时大量误报（15 类平均 28%）。
 
-修法：从 `train/good` 里留出一部分（`--calib-ratio 0.3`，本机每类留 18~78 张）**不参与建库**，
-只用它们算阈值。修完 15 类平均过杀率 4.5%，召回 85% —— 这才是一个能拿去跟产线谈的工作点。
+修法：从 `train/good` 里留出一部分（`--calib-ratio 0.3`，本机每类留 18~117 张）**不参与建库**，只用它们算阈值。当前各类标定样本不多，尤其不足以稳定估计每类 0.5% 这类极低过杀率；文中测试集过杀/漏检数字是该固定划分上的观测值，不是产线保证。正式部署前需用更大的独立良品标定集验证。
 
 ```powershell
-python patchcore_demo.py --data D:/MVTec --category all --calib-ratio 0.3
+python patchcore_demo.py --data E:/MVTec --category all --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --weights torch_cache/wide_resnet50_2_timm.pth --out experiment_data/01_mvtec_gpu/runs/reproduce
 ```
 
 ### 优化实验：五种配置对比（同机 RTX 3050 Laptop，都带 --calib-ratio 0.3）
 
-| 配置 | image AUROC（macro） | pixel AUROC | PR-AUC | 单张 | 显存峰值 | 召回@0.5%过杀（macro） |
+| 配置 | image AUROC（macro） | pixel AUROC（macro） | image PR-AUC（macro） | 推理/检索均值 | 显存峰值 | 召回@0.5%名义过杀（macro） |
 |---|---|---|---|---|---|---|
 | 随机 10% / 256（初版，阈值未留出） | 0.9703 | 0.9701 | — | 35.7 ms | 761 MB | 阈值不可信 |
-| 随机 10% / 256 | 0.9662 ± 0.039 | 0.9694 | 0.988 | 28.3 ms | 394 MB | 83.0% |
+| 随机 10% / 256 | 0.9662 ± 0.039 | 0.9694 | 0.988 | 28.3 ms | 574 MB | 83.0% |
 | **greedy 2000 / 256** | **0.9737 ± 0.027** | 0.9696 | **0.991** | **16.4 ms** | **169 MB** | **83.4%** |
 | 随机 10% / 320 | 0.9763 ± 0.022 | 0.9706 | 0.992 | 58.2 ms | 935 MB | 81.4% |
 | **greedy 2000 / 320（最终档）** | **0.9805 ± 0.019** | **0.9709** | **0.993** | 19.7 ms | 190 MB | 82.8% |
-| 9 邻域 / 256 | ❌ 4GB 卡 OOM | | | | | |
+| 9 邻域 / 256（**仅跑了 grid**） | 0.9190 | 0.9537 | — | 360.3 ms | 2353 MB | — |
 
 > **⚠ 口径：这一列的 image AUROC 是 macro**（每类各算一个 AUC，再对 15 类取平均）。
 > 同一批分数如果按图片**汇总**（pooled，1725 张混在一起算一次）是 **0.8812**，比 macro 低 9.9 个点。
@@ -191,7 +194,7 @@ python patchcore_demo.py --data D:/MVTec --category all --calib-ratio 0.3
 > 两个数都对，但**必须说清是哪个**——面试官拿仓库里的 scores 复算，如果得到 0.88 而你写 0.98，会当场翻车。
 > 复算命令见下面「三档判定」一节，classify.py report 会把两个口径一起打出来。
 
-> 最终档（`results_best/`）就是简历上那组：留出 1085 张正常图做阈值标定，逐类最差三类
+> 最终档（`experiment_data/00_baselines/results_best/`）就是简历上那组：留出 1085 张正常图做阈值标定，逐类最差三类
 > toothbrush 0.947 / screw 0.955 / pill 0.956，都比 256 版好（256 版 screw 只有 0.901）。
 > 
 > **口径提醒（两个指标都各有一个口径，别混）**：
@@ -205,13 +208,16 @@ python patchcore_demo.py --data D:/MVTec --category all --calib-ratio 0.3
 > 千万不要在 A 处写 macro、B 处写 pooled 还都叫「AUROC」。
 
 结论（可以直接当面试答案）：
-1. **greedy coreset 是性价比最高的一步**：AUROC +0.75 点、时延 28→16 ms（-42%）、显存 394→169 MB、跨类标准差 0.039→0.027（更稳）。
+1. **greedy coreset 是性价比最高的一步**：AUROC +0.75 点、时延 28→16 ms（-42%）、显存 574→169 MB、跨类标准差 0.039→0.027（更稳）。
    因为记忆库从 1.7 万压到 2000 patch，检索成本降 8 倍——这就是论文说"coreset 是效率关键"的实证。
 2. **提分辨率的代价取决于记忆库大小**：随机抽样下 320 把时延 28→58 ms（记忆库随分辨率膨胀）；
    但 coreset 定长 2000 之后，320 只多 3 ms（16.4→19.7）就换来 AUROC +0.68 点（0.9737→0.9805）。
    **顺序很重要：先压 coreset，再提分辨率**；反过来就得多付一倍时延。
-3. **9 邻域在你 4GB 卡上不成立**：记忆库 1.5 万 × 13824 维直接 `CUDA out of memory`（要再分配 1.18 GiB）；
-   唯一跑通的 grid 单张 360 ms，22× 时延，除非降到 2GB 以上显存档否则别开。
+3. **9 邻域在 4GB 卡上跑通了，但不划算**：`experiment_data/00_baselines/results_neigh/` 在 grid 上完整跑完（18,944 patch、峰值 2,353 MB、360 ms），
+   **没有 OOM**；可它是与 `experiment_data/00_baselines/results_fix/` 的 grid 同配置（256 / 随机 10%）的干净对照，
+   精度反而 **0.9373 → 0.9190（−1.8 点）**，时延 30→360 ms（12×）、显存 449→2353 MB（5.2×）。
+   原因大概率是维度从 1536 涨到 13824 后，coreset 在同等预算下覆盖变差，加上 `torch.roll` 的环绕填充污染了边界 patch。
+   只跑了一个类，不推广到全部 15 类；但至少**没有证据支持"开邻域能提分"**，所以默认关。
 4. **AUROC 高 ≠ 能上线**：0.5% 目标过杀下平均抓到 83% 缺陷（按类平均；汇总后漏检 20.0%）。工业线一般要漏检 <1~2%，
    所以真实方案得靠「双阈值 + 人工复核」或更高分辨率，这一点面试官一问就露。
 
@@ -224,14 +230,14 @@ AUROC 是阈值无关的，产线不是。产线只问：**良品过杀多少 / 
 - `thr_ng` = `thr_ok` × 倍数（默认 1.2）→ 两者之间判 **REVIEW（复检）**，高于它判 **NG**
 
 ```powershell
-python classify.py build  --data D:/MVTec --category bottle --weights W.pth   # 建库 + 标定两条阈值 → banks/bottle.npz
-python classify.py infer  --bank banks/bottle.npz --image test/broken_large/000.png --out demo_out
-python classify.py eval   --bank banks/bottle.npz --data D:/MVTec --category screw --sweep
-python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.2   # 全 15 类，离线，秒出
+python classify.py build  --data E:/MVTec --category bottle --weights torch_cache/wide_resnet50_2_timm.pth   # 建库 + 标定 → experiment_data/04_memory_banks/banks/bottle.npz
+python classify.py infer  --bank experiment_data/04_memory_banks/banks/bottle.npz --image MVTec/mvtech_anomaly_detection/bottle/test/broken_large/000.png --out experiment_data/06_demo_outputs/demo_out
+python classify.py eval   --bank experiment_data/04_memory_banks/banks/bottle.npz --data E:/MVTec --category bottle --sweep
+python classify.py report --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2   # 全 15 类，离线，秒出
 ```
 
 > `report` **只需要 numpy**：不需要数据集、不需要 GPU、不需要权重，也不用装 torch / torchvision。
-> 它只读仓库里已提交的 `results_best/scores/*.json`
+> 它只读仓库里已提交的 `experiment_data/00_baselines/results_best/scores/*.json`
 > （15 个文件共 139 KB，`path` 已写成 `<类别>/test/...` 的相对形式，不含任何本机绝对路径）。
 > 这是复算上表的最短路径：克隆仓库 → 一条命令 → 得到同样的 15 行与下面两个 AUC 口径。
 > 
@@ -246,9 +252,9 @@ python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.
 
 `infer` 会输出三联图（原图 ｜ 热力图 ｜ 叠加），归一化分数图、双线性放大后上色：
 
-![三档判定热力图](demo_out/broken_large_000_NG_57.1.png)
+![三档判定热力图](experiment_data/06_demo_outputs/demo_out/broken_large_000_NG_57.1.png)
 
-**全 15 类结果**（每类各自标定阈值，目标过杀 0.5%、灰区 1.2×，共 467 张良品 / 1,258 张缺陷）：
+**全 15 类结果**（每类各自标定阈值，名义目标过杀 0.5%、灰区 1.2×，共 467 张良品 / 1,258 张缺陷；每类标定集为 18–117 张，低误报率估计有较大不确定性）：
 
 | 类别 | 过杀 | 良品进灰区 | 漏检 | 复核量 |
 |---|---|---|---|---|
@@ -282,8 +288,7 @@ python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.
 
 三条结论，面试可以直接讲：
 
-1. **AUROC 0.980 不等于能上线**：过杀卡到 0.5% 时漏检还有 20%——这是工业线的常识，
-   论文里的 99.6% 是在"最优阈值"下报的，产线没人能接受 2% 过杀。
+1. **AUROC 0.980 不等于能上线**：在当前固定数据划分和阈值方案下，名义目标过杀 0.5% 时观测漏检约 20%；小标定集使该工作点不确定性较大。论文报告的 99.6% 是其最高配置结果，不是“最优阈值下”的单模型 WR50 对照。
 2. **灰区是便宜的那部分**：1.2× 的灰区只把复核量推到 23%，却兜回 30% 的缺陷；
    真正压漏检要放宽 thr_ok，代价是过杀变多（2% 过杀时漏检降到 13.5%）。
 3. **screw 是最差的类（漏检 76.5%）**：螺纹上的细划痕在 /8 特征图上只占 1~2 个 patch，
@@ -299,19 +304,25 @@ python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.
 AUROC 是阈值无关的，但产线只关心「固定过杀率下能抓多少」。所以把逐图分数落盘成 `scores/<类别>.json`，再用：
 
 ```powershell
-python analyze.py results_greedy        # 也可以一次给多个目录对比
+python analyze.py experiment_data/00_baselines/results_greedy        # 也可以一次给多个目录对比
 ```
 
-输出每类的 image/pixel AUROC、**PR-AUC**（缺陷占比极低时比 AUROC 诚实）、**召回@1.5%/0.5% 过杀率**、时延、记忆库大小，
+输出每类的 image/pixel AUROC、**图像级 PR-AUC**（本测试集缺陷图占比约 73%，此处不代表极低缺陷率场景；极低缺陷率下的 PR 指标需用符合产线比例的数据另测）、**召回@1.5%/0.5% 名义过杀率**、推理与最近邻评分耗时、记忆库大小，
 最后一行固定给出 **macro vs pooled 的口径对照**（见上一节的 ⚠ 提示）——`analyze.py` 和 `classify.py report` 都会打，
 这样「简历上的 0.98」和「别人复算出的 0.88」永远同时出现在你眼前，不会各说各话。
 
-论文里 PatchCore（greedy coreset 1%）全类平均 image AUROC 是 99.6%、pixel 98.1%；本机 0.980/0.971，差距来自三处，面试可以主动讲：
+论文/官方仓库报告的最高 image AUROC 为 99.6%（那是 **WR50 + 多尺度/多邻域的 ensemble 配置**，不能当单模型基线），
+WR50 单模型配置另有 99.16%（IM224）和 **99.30%（IM320）**；这些配置不能混为一个基线。本项目是 320 配置，为 0.980/0.971。
+**对同分辨率 IM320 单模型基线差 1.25 个点**（对 99.6% 的 ensemble 差 1.55 个点，但那个对比没有意义）。差异候选包括：
 1. ~~随机抽样代替贪心~~ —— 已用 `--greedy 2000` 补上（0.9662→0.9737），所以这条已经不算借口了；
 2. **权重不是论文/官方那一套** —— 用的是 timm 的 RandAugment+Mixup 重训 ImageNet 权重；
-3. **没开 9 邻域拼接**（`--neighbors`，能再提 0.3~1 个点，但显存翻 9 倍，4GB 卡吃不消）。
+3. **没开 9 邻域拼接**（`--neighbors`）；其精度/资源收益需在当前配置下实测，不能预设一定提分。
 
-记住：**能解释差距比数字漂亮更重要**，面试官更想听你知不知道这 2.6 个点差在哪。
+> **上游出处**：论文 [Towards Total Recall in Industrial Anomaly Detection](https://arxiv.org/abs/2106.08265)
+> （Roth et al., CVPR 2022），官方实现 [amazon-science/patchcore-inspection](https://github.com/amazon-science/patchcore-inspection)。
+> 本项目是**从零复现**（不 import anomalib，也不拷上游代码），与原版的差异见本节的差异候选清单与 `docs/OPTIMIZATION_PLAN.md` §7。
+
+记住：**能解释差距比数字漂亮更重要**，面试官更想听你知不知道这 1.25 个点差在哪。
 
 ### 主要参数
 
@@ -320,10 +331,32 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 | `--size` | 输入分辨率 | 默认 256；想更快用 224，想更准用 320 |
 | `--coreset-ratio` | 记忆库随机抽样比例 | 默认 0.1；显存不够调到 0.03 |
 | `--greedy N` | 改用论文的 k-center 贪心，保留 N 个 patch | `--greedy 1000`，慢但准确率高 |
-| `--neighbors` | 论文版 9 邻域拼接（维度 x9） | 显存 ≥8G 再开，AUROC 通常 +0.3~1 个点 |
+| `--neighbors` | 9 邻域拼接（维度 x9） | 先做显存与精度实测；当前实验不支持固定的提分预期 |
 | `--thr-pct` | 阈值取标定分数的百分位 | 默认 99；**产线漏检优先就调到 99.5** |
 | `--calib-ratio` | 从 train/good 留出多少比例专门标定阈值 | **强烈建议 0.3**；不给就退回旧行为（阈值偏低、误报虚高） |
 | `--limit` | 每类只取前 N 张 | 冒烟测试用 |
+
+### PyQt 单图演示
+
+桌面界面支持选择记忆库与待测图片，显示原图、异常热力图、异常分数和 OK / REVIEW / NG 三档结果。先按上文建立 bank，再启动：
+
+```powershell
+pip install PyQt5
+python classify.py build --data E:/MVTec --category bottle --weights torch_cache/wide_resnet50_2_timm.pth --out experiment_data/04_memory_banks/banks
+python pyqt_demo.py
+```
+
+稳定性诊断可对留出的良品 calibration 分数做 bootstrap，观察阈值对有限标定样本的敏感度：
+
+```powershell
+python tools/threshold_stability.py --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2 --repeats 1000
+```
+
+这项诊断反复使用同一固定 test 集，输出不是独立置信区间或产线保证；使用方法与解释见 [复现说明](docs/REPRODUCE.md)。
+
+### 新数据集：VisA
+
+Amazon VisA 已下载并整理为 12 类 1-class split。PCB1 的可选实验记忆库在 `experiment_data/04_memory_banks/banks_visa_top5_fpr05/pcb1.npz`，使用最高 5% patch 均值和 5% 良品复检目标；当前官方测试集的 image AUROC 为 0.8491，异常直接漏判 43%。该测试集已用于探索，不作为独立验证，配置仍需用新样品验证。数据位置、PyQt 运行步骤和默认/实验阈值对比见 [VisA 接入指南](docs/VISA.md)。VisA 单独报告，不混入 MVTec AD 原有 15 类指标。
 
 ---
 
@@ -347,7 +380,7 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 > **【工业质检】** MVTec AD 少样本无监督缺陷检测（PatchCore）　｜　个人项目　｜　2026.10　｜　代码开源（见 GitHub）
 > - **方法：** WideResNet50 的 layer2/layer3 特征融合出 /8 分辨率 patch 描述子，构建正常样本记忆库，测试时以最近邻距离作为异常分数；用高斯平滑抑制单点噪声，再做 image-level 判定。
 > - **工程：** 用随机抽样 / k-center 贪心两种 coreset 策略控制记忆库规模，把每类约 27 万 patch 压到 2,000（<1%），单张 20 ms（RTX 3050 Laptop）、显存 0.19 GB；同分辨率下比随机抽样快 42%、省一半显存且精度反高 0.7 点。
-> - **结果：** MVTec AD 15 类共 1,725 张测试图，image AUROC 0.980（15 类均值）、pixel AUROC 0.971、PR-AUC 0.993；自研 OK / 复检 / NG 三档判定（阈值由良品留出 1,085 张标定，目标过杀 0.5%）：良品直接判废 0.2%、转复核 2.1%，缺陷漏检 20.0%、灰区再捞回 30%；过杀放宽到 1% / 10% 时漏检 16.6% / 4.1%，给出「过杀-漏检-复核量」产线曲线。
+> - **结果：** MVTec AD 15 类共 1,725 张测试图，image AUROC 0.980（15 类均值）、pixel AUROC 0.971、图像级 PR-AUC 0.993；自研 OK / 复检 / NG 三档判定（每类阈值由 18–117 张留出良品标定，名义目标过杀 0.5%）：当前测试划分观测到良品直接判废 0.2%、转复核 2.1%，缺陷漏检 20.0%、灰区再捞回 30%。这些低误报工作点来自小标定集，应作为探索性结果，不表述为产线保证。
 
 （以上为**已跑出的真实版本**，简历里就是用这一版。注意第一句的 `0.980（15 类均值）` 是 macro 口径，
 括号不能省——省了就和 pooled 0.8812 打架，见上一节 ⚠ 提示。）
@@ -361,7 +394,7 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 
 ### 需要抄进简历的 4 个字段
 
-`results.csv` 里这几列就是简历要的：
+`experiment_data/00_baselines/results_best/results.csv` 里这几列就是简历要的：
 
 | CSV 列 | 简历里写什么 | 注意 |
 |---|---|---|
@@ -370,6 +403,14 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 | `latency_ms` | 单张 xx ms | 注明机器型号与分辨率 |
 | `mem_patches` + `peak_gpu_mb` | 记忆库 xx patch、显存 x.x GB | 显存取 `peak_gpu_mb`，别用 nvidia-smi 的整卡占用 |
 | `recall_at_thr` / `false_positive_rate` | 漏检 x% / 误报 x% | 这两列是**单阈值**结果；三档判定的数要跑 `classify.py report` |
+
+**另外，`experiment_data/00_baselines/results_best/results.csv` 现在会自己记录配置**（`size` / `neighbors` / `imagenet_norm` /
+`coreset` / `coreset_k` / `coreset_ratio` / `calib_ratio` / `thr_pct` / `seed` / `weights`）。
+
+之前这几个字段是不写的，结果仓库里同时躺着 `experiment_data/00_baselines/results/`、`experiment_data/00_baselines/results_fix/`、`experiment_data/00_baselines/results_greedy/`、
+`experiment_data/00_baselines/results_320/`、`experiment_data/00_baselines/results_best/`、`experiment_data/00_baselines/results_neigh/`、`experiment_data/00_baselines/results_normtest/` 七个目录，光看 CSV
+根本分不清哪个是 256 哪个是 320、哪个开了邻域——事后只能靠显存和时延反推。
+现在每行自带配置，**任何一个结果目录都能自证**。
 
 ---
 
@@ -391,8 +432,8 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 
 | 想验证什么 | 要准备什么 | 命令 | 耗时 |
 |---|---|---|---|
-| 三档判定那 15 行 + 两个 AUC 口径 | **只要有 numpy** | `python classify.py report --scores results_best/scores --fpr 0.005 --ng-ratio 1.2` | 1 秒 |
-| 某类能跑到同样 AUROC | 数据集 + 权重 | `python patchcore_demo.py --data D:/MVTec --category bottle --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --weights W.pth` | bottle 约 3 分钟（建库 168 s + 推理） |
+| 三档判定那 15 行 + 两个 AUC 口径 | **只要有 numpy** | `python classify.py report --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2` | 1 秒 |
+| 某类能跑到同样 AUROC | 数据集 + timm 权重 | `python patchcore_demo.py --data E:/MVTec --category bottle --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --weights torch_cache/wide_resnet50_2_timm.pth --out experiment_data/01_mvtec_gpu/runs/reproduce` | bottle 约 2–3 分钟（受设备负载影响） |
 
 > 第二条命令的预期值（bottle，RTX 3050 Laptop）：`img_auroc 1.0000 / pixel 0.9857 / threshold 37.9943 / mem 2000 / peak 188.7 MB`。
 > 时延会在 17–24 ms 之间抖动（笔记本 GPU 动态频率），**别把时延当复现失败的判据，看 threshold 和 AUROC**。
@@ -405,9 +446,38 @@ python analyze.py results_greedy        # 也可以一次给多个目录对比
 
 ---
 
+## 9. 自检（不需要 GPU、不需要数据集）
+
+```powershell
+python -m pytest tests/ -q        # 有 pytest
+python tests/test_metrics.py      # 没 pytest 也能直接跑，纯 numpy
+```
+
+`tests/test_metrics.py` 只依赖 numpy，共 11 条，钉的是**面试官唯一会当场复算的那几个数**：
+
+- `auc()` 是手写的 rank 法（为了不依赖 sklearn）。并列值如果按 argsort 名次硬算，
+  所有指标会整体偏一点却**不报错**——所以专门有「全并列应为 0.5」「打乱顺序结果不变」
+  「与两两比较定义式对拍」三条。
+- `auprc()` 的单调性（排序更好的分数必须拿到更高 PR-AUC）。
+- `check_bank_dims()`：记忆库维度必须和 meta 里记的 `neighbors` 自洽。
+  这条是 **BUG-1 的回归测试**——早期 `classify.py` 建库时没把 `--neighbors` 传下去，
+  建库恒为 1536 维、查询却是 13824 维，要到推理才抛一个跟根因无关的 cdist 维度错误。
+
+---
+
 有问题把 traceback 贴给我，我按报错改脚本。
 
 ---
+
+## 面试材料与当前实验状态
+
+- [集中实验数据总目录](experiment_data/README.md)：所有基线、GPU、VisA、triage、bank 和演示工件，以及逐类结果总表和文件校验清单。
+- [实验协议与数据集角色](docs/EXPERIMENT_PROTOCOL.md)：MVTec 开发集、VisA 外部验证与当前口径。
+- [难类失败分析](docs/FAILURE_ANALYSIS.md)：逐缺陷子类漏检与代表性标注图。
+- [面试现场演示流程](docs/INTERVIEW_DEMO.md)：桌面/命令行演示步骤与预期输出。
+- [结果优化计划与 GPU 实验记录](docs/RESULTS_OPTIMIZATION_PLAN.md)：平滑、少样本、校准和扰动实验。
+
+**结果使用提醒：** MVTec 测试集已经用于多轮开发实验，应按开发集结果呈现；VisA PCB2 完成了一次锁定配置的外部检查，也不再是未触碰的 holdout。真实产线泛化仍需使用新的独立工件批次验证。
 
 ## 许可
 

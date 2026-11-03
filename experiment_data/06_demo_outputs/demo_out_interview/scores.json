@@ -1,0 +1,8 @@
+[
+  {
+    "image": "MVTec\\mvtech_anomaly_detection\\bottle\\test\\broken_large\\000.png",
+    "score": 59.6613,
+    "verdict": "NG",
+    "heatmap": "broken_large_000_NG_59.7.png"
+  }
+]

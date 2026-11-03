@@ -7,14 +7,14 @@
     这样才可能在「漏检 < 1%」的硬指标下把误杀控制在可接受范围。
 
 三个子命令：
-    build  : 用 train/good 建记忆库，并从留出的良品标定两条阈值 → banks/<类>.npz
+    build  : 用 train/good 建记忆库，并从留出的良品标定两条阈值 → experiment_data/04_memory_banks/banks/<类>.npz
     infer  : 单张图推理，输出分数、三档结论、热力图 PNG（面试现场演示用）
     eval   : 在整个 test 集上跑三档判定，输出混淆矩阵 / 漏检 / 过杀 / 复检率
 
 用法（以 bottle 为例，与简历同配置：320 分辨率 + 2000 patch 贪心）：
-    python classify.py build --data D:/MVTec --category bottle --weights W.pth
-    python classify.py infer --bank banks/bottle.npz --image test/broken_large/000.png --out heat.png
-    python classify.py eval  --bank banks/bottle.npz --data D:/MVTec --category bottle
+    python classify.py build --data E:/MVTec --category bottle --weights torch_cache/wide_resnet50_2_timm.pth
+    python classify.py infer --bank experiment_data/04_memory_banks/banks/bottle.npz --image test/broken_large/000.png --out heat.png
+    python classify.py eval  --bank experiment_data/04_memory_banks/banks/bottle.npz --data E:/MVTec --category bottle
 
 阈值口径（关键，面试会问）：
     thr_ok = 留出良品分数的 P(1-fpr) 分位 —— 直接对应「良品过杀率 fpr」
@@ -63,7 +63,7 @@ def _need_torch():
     except ImportError as e:
         raise SystemExit(
             f'当前子命令需要 torch / torchvision / Pillow（{e}）。'
-            ' 只复算三档表请用：python classify.py report --scores results_best/scores')
+            ' 只复算三档表请用：python classify.py report --scores experiment_data/00_baselines/results_best/scores')
     torch, Image, _pcdemo = _t, _I, _p
     torch.set_grad_enabled(False)
 
@@ -71,22 +71,29 @@ def _need_torch():
 # ---------------------------------------------------------------- 打分的公共部分
 # 注意：这里不能用 @torch.no_grad() 装饰器 —— torch 是延迟导入的，模块加载时还是 None。
 # 改成在函数体内 with torch.no_grad()，效果一样。
-def image_patch_scores(model, bank, path, size, device, neighbors=False):
+def image_patch_scores(model, bank, path, size, device, neighbors=False, score_agg='max'):
     """单张图 → (patch 分数图 hxw, 图像分数)。"""
     with torch.no_grad():
         x = _pcdemo.load_img(path, size)
-        patch, score = _pcdemo.patch_scores(model, bank, x, device, neighbors)
+        patch, score = _pcdemo.patch_scores(model, bank, x, device, neighbors, score_agg)
         return patch.cpu().numpy(), score
 
 
-def collect_patches(model, paths, size, device, log_every=40):
-    """把一批图的 patch 描述子堆成 (N, C) 张量。"""
+def collect_patches(model, paths, size, device, neighbors=False, log_every=40):
+    """把一批图的 patch 描述子堆成 (N, C) 张量。
+
+    neighbors 必须与 build 时记录的 meta['neighbors'] 一致，否则建库是 C 维、
+    查询是 9C 维，cdist 会因维度不匹配直接报错（早期版本就踩过这个坑）。
+    """
     out = []
     with torch.no_grad():
         for i, p in enumerate(paths):
             x = _pcdemo.load_img(p, size).to(device)
-            emb, _ = _pcdemo.embed(model(x))
-            out.append(emb.squeeze(0))
+            emb, _ = _pcdemo.embed(model(x), neighbors)
+            # Keep the full training feature bank on CPU. VisA categories have
+            # many more train images than MVTec, so retaining every patch on
+            # the GPU can exceed the VRAM available on a desktop card.
+            out.append(emb.squeeze(0).detach().cpu())
             if log_every and (i + 1) % log_every == 0:
                 print(f'  特征 {i + 1}/{len(paths)}', flush=True)
     return torch.cat(out, dim=0)
@@ -148,7 +155,29 @@ def load_bank(path, device):
     z = np.load(path, allow_pickle=True)
     bank = torch.from_numpy(z['bank']).float().to(device)
     meta = json.loads(str(z['meta']))
+    check_bank_dims(bank, meta, path)
     return bank, meta
+
+
+# layer2(512) + layer3(1024) = 1536；开 9 邻域再 ×9。
+_BASE_DIM = 1536
+
+
+def check_bank_dims(bank, meta, path='<bank>'):
+    """建库维度和 meta 里记的 neighbors 必须自洽，否则 cdist 会在推理时才炸。
+
+    早期版本的 collect_patches 没把 --neighbors 传下去：建库恒为 1536 维，
+    但 meta 里却写了 neighbors=True，于是查询侧算出 13824 维，
+    报错信息是 "cdist 维度不匹配"，跟真正的原因（build 参数没生效）隔了很远。
+    """
+    want = _BASE_DIM * (9 if meta.get('neighbors') else 1)
+    got = int(bank.shape[1])
+    if got != want:
+        raise SystemExit(
+            f'记忆库维度不自洽：{path} 里是 {got} 维，但 meta 记录 neighbors={bool(meta.get("neighbors"))}，'
+            f'按此应为 {want} 维。\n'
+            f'这通常意味着建库时的 --neighbors 与实际提取特征时不一致，请重新 build。'
+        )
 
 
 # ---------------------------------------------------------------- build
@@ -164,21 +193,25 @@ def cmd_build(a):
     # 与 demo 一致的留出逻辑：一部分良品只用于标定阈值，绝不进记忆库
     idx = np.random.RandomState(a.seed).permutation(len(imgs))
     n_cal = max(2, int(len(imgs) * a.calib_ratio))
-    calib = [imgs[i] for i in sorted(idx[:n_cal])]
-    used = [imgs[i] for i in sorted(idx[n_cal:])]
+    # Preserve the permutation order used by patchcore_demo.py. Sorting these
+    # indices changes which feature rows the seeded coreset sampler selects.
+    calib = [imgs[i] for i in idx[:n_cal]]
+    used = [imgs[i] for i in idx[n_cal:]]
     print(f'[{a.category}] 训练图 {len(imgs)} → 建库 {len(used)} / 标定 {len(calib)}')
 
     model = _pcdemo.Features(weights_path=a.weights, imagenet_norm=a.imagenet_norm).to(device).eval()
     print('提取建库特征…', flush=True)
-    feats = collect_patches(model, used, a.size, device)
+    feats = collect_patches(model, used, a.size, device, a.neighbors)
     print(f'  建库 patch {feats.shape[0]:,} × {feats.shape[1]}', flush=True)
     bank = _pcdemo.coreset_greedy(feats, a.greedy, seed=a.seed)
     print(f'  贪心 coreset → {bank.shape[0]} patch（{bank.shape[0] / feats.shape[0]:.2%}）', flush=True)
     del feats
     torch.cuda.empty_cache() if device.type == 'cuda' else None
+    bank = bank.to(device)
 
     print('标定阈值…', flush=True)
-    cal_scores = np.array([image_patch_scores(model, bank, p, a.size, device)[1] for p in calib])
+    cal_scores = np.array([image_patch_scores(model, bank, p, a.size, device,
+                                              a.neighbors, a.score_agg)[1] for p in calib])
     thr_ok = float(np.percentile(cal_scores, 100 * (1 - a.fpr)))
     if a.ng_ratio > 0:
         thr_ng = thr_ok * a.ng_ratio
@@ -189,7 +222,9 @@ def cmd_build(a):
 
     os.makedirs(a.out, exist_ok=True)
     meta = dict(category=a.category, size=a.size, neighbors=bool(a.neighbors), greedy=int(bank.shape[0]),
+                score_agg=a.score_agg,
                 calib_ratio=a.calib_ratio, fpr=a.fpr, ng_ratio=a.ng_ratio, seed=a.seed,
+                imagenet_norm=bool(a.imagenet_norm), dim=int(bank.shape[1]),
                 thr_ok=thr_ok, thr_ng=thr_ng, n_used=len(used), n_calib=len(calib),
                 calib_median=float(np.median(cal_scores)), weights=a.weights or 'torchvision IMAGENET1K_V1')
     out = os.path.join(a.out, f'{a.category}.npz')
@@ -211,7 +246,8 @@ def cmd_infer(a):
     print('-' * 78)
     rows = []
     for p in paths:
-        patch, score = image_patch_scores(model, bank, p, meta['size'], device, meta['neighbors'])
+        patch, score = image_patch_scores(model, bank, p, meta['size'], device,
+                                          meta['neighbors'], meta.get('score_agg', 'max'))
         v = verdict(score, meta['thr_ok'], meta['thr_ng'])
         print(f'{os.path.relpath(p):<44}{score:9.2f}  {v}')
         rows.append(dict(image=os.path.relpath(p), score=round(score, 4), verdict=v))
@@ -234,6 +270,11 @@ def cmd_eval(a):
     _need_torch()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bank, meta = load_bank(a.bank, device)
+    if meta.get('category') and meta['category'] != a.category:
+        raise SystemExit(
+            f"记忆库类别不匹配：bank 属于 {meta['category']}，评测类别是 {a.category}。"
+            f"请使用对应类别的 bank，或将 --category 改为 {meta['category']}。"
+        )
     model = _pcdemo.Features(weights_path=_pick_weights(a, meta),
                         imagenet_norm=a.imagenet_norm).to(device).eval()
     test_dir = os.path.join(a.data, a.category, 'test')
@@ -262,7 +303,8 @@ def cmd_eval(a):
     print(f'[{a.category}] 测试图 {len(items)} 张，阈值 {meta["thr_ok"]:.2f} / {meta["thr_ng"]:.2f}')
     rows = []
     for i, (p, t) in enumerate(items):
-        _, score = image_patch_scores(model, bank, p, meta['size'], device, meta['neighbors'])
+        _, score = image_patch_scores(model, bank, p, meta['size'], device,
+                                      meta['neighbors'], meta.get('score_agg', 'max'))
         rows.append(dict(path=os.path.relpath(p, test_dir), label=t, defect=int(t != 'good'),
                          score=score, verdict=verdict(score, meta['thr_ok'], meta['thr_ng'])))
         if (i + 1) % 40 == 0:
@@ -456,11 +498,13 @@ def main():
     b = sub.add_parser('build', help='建记忆库并标定两条阈值')
     b.add_argument('--data', required=True, help='MVTec AD 根目录')
     b.add_argument('--category', required=True)
-    b.add_argument('--out', default='banks')
+    b.add_argument('--out', default='experiment_data/04_memory_banks/banks')
     b.add_argument('--size', type=int, default=320, help='输入分辨率（简历配置 320）')
     b.add_argument('--greedy', type=int, default=2000, help='k-center 保留 patch 数')
     b.add_argument('--calib-ratio', type=float, default=0.3)
     b.add_argument('--fpr', type=float, default=0.005, help='允许的良品过杀率，决定 thr_ok 分位')
+    b.add_argument('--score-agg', choices=['max', 'top5'], default='max',
+                   help='校准和推理共用的图像分数聚合方式')
     b.add_argument('--ng-ratio', type=float, default=0.0, help='thr_ng=thr_ok*该倍数；0=按 fpr/20 分位')
     b.add_argument('--neighbors', action='store_true')
     b.add_argument('--imagenet-norm', action='store_true')
@@ -482,7 +526,7 @@ def main():
     e.add_argument('--data', required=True)
     e.add_argument('--category', required=True)
     e.add_argument('--limit', type=int, default=0, help='每类缺陷抽样张数（0=全跑）')
-    e.add_argument('--out', default='triage')
+    e.add_argument('--out', default='experiment_data/03_triage')
     e.add_argument('--weights', default=None)
     e.add_argument('--seed', type=int, default=0)
     e.add_argument('--imagenet-norm', action='store_true')
@@ -490,10 +534,10 @@ def main():
     e.set_defaults(func=cmd_eval)
 
     rp = sub.add_parser('report', help='离线三档判定：直接读 scores/*.json，不重算特征')
-    rp.add_argument('--scores', default='results_best/scores', help='含 <类别>.json 的目录')
+    rp.add_argument('--scores', default='experiment_data/00_baselines/results_best/scores', help='含 <类别>.json 的目录')
     rp.add_argument('--fpr', type=float, default=0.005, help='目标良品过杀率（决定 thr_ok 分位）')
     rp.add_argument('--ng-ratio', type=float, default=1.2, help='thr_ng = thr_ok × 该倍数（灰区宽度）')
-    rp.add_argument('--out', default='triage')
+    rp.add_argument('--out', default='experiment_data/03_triage')
     rp.set_defaults(func=cmd_report)
 
     a = ap.parse_args()

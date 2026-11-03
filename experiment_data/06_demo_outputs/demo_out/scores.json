@@ -1,0 +1,8 @@
+[
+  {
+    "image": "..\\MVTec_dl\\x\\mvtech_anomaly_detection\\bottle\\test\\contamination\\000.png",
+    "score": 54.1778,
+    "verdict": "NG",
+    "heatmap": "contamination_000_NG_54.2.png"
+  }
+]

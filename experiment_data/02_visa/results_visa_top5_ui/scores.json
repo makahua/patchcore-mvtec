@@ -1,0 +1,8 @@
+[
+  {
+    "image": "VisA_pytorch\\1cls\\pcb1\\test\\bad\\041.JPG",
+    "score": 59.1469,
+    "verdict": "NG",
+    "heatmap": "bad_041_NG_59.1.png"
+  }
+]

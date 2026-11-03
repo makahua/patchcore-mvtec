@@ -1,0 +1,2 @@
+﻿category,n_train,n_calib,n_test,size,neighbors,imagenet_norm,coreset,coreset_k,coreset_ratio,score_agg,blur_sigma,train_limit,train_seed,perturb_brightness,perturb_noise,perturb_blur,perturb_calibration,calib_ratio,thr_pct,seed,split_seed,weights,mem_patches,img_auroc,pixel_auroc,threshold,recall_at_thr,false_positive_rate,latency_ms,latency_p95_ms,build_seconds,peak_gpu_mb
+screw,50,96,160,320,0,0,greedy,2000,,max,2.0,50,1,1.0,0.0,0.0,0,0.3,99.0,0,42,wide_resnet50_2_timm.pth,2000,0.7018,0.9739,46.4653,0.2437,0.0976,18.29,18.43,38.4,188.0

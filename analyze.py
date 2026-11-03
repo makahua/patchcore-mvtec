@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """离线分析 PatchCore 结果：从 scores/*.json 重算「固定过杀率下的召回」与 PR-AUC。
 
-用法: python analyze.py results_fix [results_greedy ...]
+用法: python analyze.py experiment_data/00_baselines/results_fix [experiment_data/00_baselines/results_greedy ...]
 """
 import csv, glob, json, os, sys
 import numpy as np
@@ -80,5 +80,15 @@ def show(tag, rows):
           f"（{len(all_y)} 张混池），差 {abs(m('img') - pooled) * 100:.1f} 个点。")
 
 
-for d in sys.argv[1:]:
-    show(os.path.basename(d), load(d))
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv:
+        print(__doc__.strip())
+        print('\n未指定结果目录，默认分析 experiment_data/00_baselines/results_best：')
+        argv = ['experiment_data/00_baselines/results_best']
+    for d in argv:
+        show(os.path.basename(d), load(d))
+
+
+if __name__ == '__main__':
+    main()

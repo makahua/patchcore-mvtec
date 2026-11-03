@@ -1,0 +1,2 @@
+﻿category,n_train,n_calib,n_test,size,neighbors,imagenet_norm,coreset,coreset_k,coreset_ratio,calib_ratio,thr_pct,seed,weights,mem_patches,img_auroc,pixel_auroc,threshold,recall_at_thr,false_positive_rate,latency_ms,latency_p95_ms,build_seconds,peak_gpu_mb
+pcb1,3,0,6,256,0,0,greedy,128,,0.3,99.0,0,wide_resnet50_2_timm.pth,128,1.0,0.9776,40.7897,1.0,0.6667,11.9,13.09,0.9,141.9

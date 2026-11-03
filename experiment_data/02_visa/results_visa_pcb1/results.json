@@ -1,0 +1,28 @@
+[
+  {
+    "category": "pcb1",
+    "n_train": 633,
+    "n_calib": 271,
+    "n_test": 200,
+    "size": 192,
+    "neighbors": 0,
+    "imagenet_norm": 0,
+    "coreset": "greedy",
+    "coreset_k": 256,
+    "coreset_ratio": null,
+    "calib_ratio": 0.3,
+    "thr_pct": 99.0,
+    "seed": 0,
+    "weights": "wide_resnet50_2_timm.pth",
+    "mem_patches": 256,
+    "img_auroc": 0.8326,
+    "pixel_auroc": 0.9818,
+    "threshold": 42.3241,
+    "recall_at_thr": 0.37,
+    "false_positive_rate": 0.02,
+    "latency_ms": 12.4,
+    "latency_p95_ms": 14.99,
+    "build_seconds": 39.7,
+    "peak_gpu_mb": 134.2
+  }
+]

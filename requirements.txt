@@ -6,5 +6,8 @@ torchvision>=0.15
 numpy>=1.24
 pillow>=9.5
 
+# 可选：PyQt5/PyQt6 均可，界面会优先使用 PyQt6，失败时回退 PyQt5
+# PyQt5>=5.15
+
 # 可选：只想看曲线图时用（脚本本身不依赖）
 # matplotlib>=3.7

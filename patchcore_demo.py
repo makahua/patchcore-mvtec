@@ -5,9 +5,9 @@
 思路与 PatchCore 论文一致：ImageNet 预训练特征 -> patch 级记忆库 -> 最近邻距离评分。
 
 用法（先在 MVTec AD 的 bottle 类别上跑通，再上全类别）：
-    python patchcore_demo.py --data D:/MVTec --category bottle
-    python patchcore_demo.py --data D:/MVTec --category all
-    python patchcore_demo.py --data D:/MVTec --category bottle --limit 20   # 冒烟测试
+    python patchcore_demo.py --data E:/MVTec --category bottle
+    python patchcore_demo.py --data E:/MVTec --category all
+    python patchcore_demo.py --data E:/MVTec --category bottle --limit 20   # 冒烟测试
 
 产出：results/results.csv、results/<类别>_summary.json、results/heatmaps/
 """
@@ -51,6 +51,26 @@ def list_images(d):
 def load_img(path, size):
     im = Image.open(path).convert('RGB').resize((size, size), Image.BILINEAR)
     x = torch.from_numpy(np.asarray(im, dtype=np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
+    return x
+
+
+def perturb_img(x, brightness=1.0, noise_std=0.0, blur_sigma=0.0, seed=0):
+    """可复现的非几何采集扰动；x 为 [1,C,H,W]、范围 [0,1]。"""
+    x = (x * brightness).clamp(0, 1)
+    if blur_sigma > 0:
+        radius = max(1, int(round(3 * blur_sigma)))
+        ax = torch.arange(-radius, radius + 1, dtype=x.dtype)
+        kernel = torch.exp(-(ax ** 2) / (2 * blur_sigma ** 2))
+        kernel = kernel / kernel.sum()
+        channels = x.shape[1]
+        x = F.conv2d(x, kernel.view(1, 1, 1, -1).expand(channels, 1, 1, -1),
+                      padding=(0, radius), groups=channels)
+        x = F.conv2d(x, kernel.view(1, 1, -1, 1).expand(channels, 1, -1, 1),
+                      padding=(radius, 0), groups=channels)
+    if noise_std > 0:
+        gen = torch.Generator(device='cpu').manual_seed(int(seed))
+        noise = torch.randn(x.shape, generator=gen, dtype=x.dtype)
+        x = (x + noise * noise_std).clamp(0, 1)
     return x
 
 
@@ -165,7 +185,7 @@ def coreset_greedy(feats, k, seed=0, ratio=0.1):
 
 
 @torch.no_grad()
-def patch_scores(model, mem, x, device, neighbors=False):
+def patch_scores(model, mem, x, device, neighbors=False, score_agg='max', blur_sigma=2.0):
     feat = model(x.to(device))
     emb, (h, w) = embed(feat, neighbors)
     emb = emb.squeeze(0)                                    # N, C
@@ -175,8 +195,15 @@ def patch_scores(model, mem, x, device, neighbors=False):
         d = torch.cdist(emb[i:i + 2048], mem)
         mins.append(d.min(dim=1).values)
     patch = torch.cat(mins).reshape(h, w)
-    patch = gaussian_blur(patch)
-    return patch, float(patch.max().item())
+    patch = gaussian_blur(patch, sigma=blur_sigma) if blur_sigma > 0 else patch
+    if score_agg == 'max':
+        image_score = patch.max()
+    elif score_agg == 'top5':
+        k = max(1, int(np.ceil(patch.numel() * 0.05)))
+        image_score = torch.topk(patch.flatten(), k).values.mean()
+    else:
+        raise ValueError(f'unknown image score aggregation: {score_agg}')
+    return patch, float(image_score.item())
 
 
 def run_category(args, cat, device):
@@ -203,10 +230,30 @@ def run_category(args, cat, device):
     # 0) 留出一部分 good 图专门标定阈值：用「建库图自己」打分会让距离趋近 0，阈值被系统性压低
     calib_imgs = []
     if args.calib_ratio > 0 and len(train_imgs) >= 5:
-        idx = np.random.RandomState(args.seed).permutation(len(train_imgs))
+        idx = np.random.RandomState(args.split_seed).permutation(len(train_imgs))
         n_cal = max(2, int(len(train_imgs) * args.calib_ratio))
         calib_imgs = [train_imgs[i] for i in idx[:n_cal]]
         train_imgs = [train_imgs[i] for i in idx[n_cal:]]
+
+    # 1) 少样本实验：在固定的 calibration split 后，按 seed 抽取建库图。
+    # 不使用排序前 N 张，避免文件名顺序引入样本偏差。
+    if args.train_limit > 0 and len(train_imgs) > args.train_limit:
+        rng = np.random.RandomState(args.seed + 1)
+        chosen = np.sort(rng.choice(len(train_imgs), size=args.train_limit, replace=False))
+        train_imgs = [train_imgs[i] for i in chosen]
+
+    # 固化每次运行的数据角色，便于审计划分是否发生变化。
+    manifest_dir = os.path.join(args.out, 'manifests')
+    os.makedirs(manifest_dir, exist_ok=True)
+    manifest = dict(
+        category=cat, seed=args.seed, split_seed=args.split_seed, train_seed=args.seed + 1,
+        calib_ratio=args.calib_ratio, train_limit=args.train_limit,
+        train=[rel_path(p, args.data, cat) for p in train_imgs],
+        calibration=[rel_path(p, args.data, cat) for p in calib_imgs],
+        test=[rel_path(p, args.data, cat) for p in test_imgs],
+    )
+    with open(os.path.join(manifest_dir, f'{cat}.json'), 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
 
     # 1) 建记忆库
     t0 = time.time()
@@ -227,21 +274,28 @@ def run_category(args, cat, device):
     # 2) 阈值标定：优先用留出的 calib 图（未参与建库），否则退回建库图自评分
     score_src = calib_imgs if calib_imgs else train_imgs
     train_scores = []
-    for p in score_src:
-        _, s = patch_scores(model, mem, load_img(p, args.size), device, args.neighbors)
+    for i, p in enumerate(score_src):
+        x_cal = load_img(p, args.size)
+        if args.perturb_calibration:
+            x_cal = perturb_img(x_cal, args.perturb_brightness, args.perturb_noise,
+                                args.perturb_blur, args.seed + i)
+        _, s = patch_scores(model, mem, x_cal, device,
+                            args.neighbors, args.score_agg, args.blur_sigma)
         train_scores.append(s)
     thr = float(np.percentile(train_scores, args.thr_pct))
 
     # 3) 测试集评分
     y, score, px_true, px_score = [], [], [], []
     lat, top = [], []
-    for p in test_imgs:
+    for i, p in enumerate(test_imgs):
         label = 0 if os.path.basename(os.path.dirname(p)) == 'good' else 1
-        x = load_img(p, args.size)
+        x = perturb_img(load_img(p, args.size), args.perturb_brightness,
+                        args.perturb_noise, args.perturb_blur, args.seed + 100000 + i)
         if device.type == 'cuda':
             torch.cuda.synchronize()
         t = time.time()
-        patch, s = patch_scores(model, mem, x, device, args.neighbors)
+        patch, s = patch_scores(model, mem, x, device, args.neighbors, args.score_agg,
+                                args.blur_sigma)
         if device.type == 'cuda':
             torch.cuda.synchronize()
         lat.append((time.time() - t) * 1000)
@@ -251,6 +305,11 @@ def run_category(args, cat, device):
         if label == 1:
             rel = os.path.relpath(p, test_dir)
             m = os.path.join(gt_dir, os.path.splitext(rel)[0] + '_mask.png')
+            # VisA's official 1-class preparation stores masks as
+            # ground_truth/bad/<image-stem>.png (without the MVTec suffix).
+            if not os.path.exists(m):
+                m = os.path.join(gt_dir, os.path.dirname(rel),
+                                 os.path.splitext(os.path.basename(rel))[0] + '.png')
             if os.path.exists(m):
                 hw = patch.shape[-1]
                 mask = np.asarray(Image.open(m).convert('L').resize((hw, hw), Image.NEAREST)) > 128
@@ -280,13 +339,34 @@ def run_category(args, cat, device):
 
     os.makedirs(os.path.join(args.out, 'scores'), exist_ok=True)
     with open(os.path.join(args.out, 'scores', f'{cat}.json'), 'w', encoding='utf-8') as f:
-        json.dump(dict(category=cat, thr=thr, thr_pct=args.thr_pct,
+        json.dump(dict(category=cat, thr=thr, thr_pct=args.thr_pct, score_agg=args.score_agg,
+                       blur_sigma=args.blur_sigma, train_limit=args.train_limit,
+                       train_seed=args.seed + 1,
+                       perturb=dict(brightness=args.perturb_brightness,
+                                    noise_std=args.perturb_noise,
+                                    blur_sigma=args.perturb_blur,
+                                    calibration_reperturbed=args.perturb_calibration),
                        calib=list(map(float, train_scores)),
                        test=[dict(path=rel_path(p, args.data, cat), label=l, score=s)
                              for p, l, s in zip(test_imgs, y, score)]),
                   f, ensure_ascii=False)
 
     res = dict(category=cat, n_train=len(train_imgs), n_calib=len(calib_imgs), n_test=len(test_imgs),
+               # ---- 配置列：没有这些，几份 results*/ 目录事后无法区分 ----
+               size=args.size, neighbors=int(bool(args.neighbors)),
+               imagenet_norm=int(bool(getattr(args, 'imagenet_norm', False))),
+               coreset='greedy' if args.greedy else 'random',
+               coreset_k=(args.greedy or None),  # 请求的 k；random 模式下为 None
+               coreset_ratio=(None if args.greedy else args.coreset_ratio),
+               score_agg=args.score_agg, blur_sigma=args.blur_sigma,
+               train_limit=args.train_limit, train_seed=args.seed + 1,
+               perturb_brightness=args.perturb_brightness,
+               perturb_noise=args.perturb_noise, perturb_blur=args.perturb_blur,
+               perturb_calibration=int(args.perturb_calibration),
+               calib_ratio=args.calib_ratio, thr_pct=args.thr_pct, seed=args.seed,
+               split_seed=args.split_seed,
+               weights=os.path.basename(args.weights) if args.weights else 'IMAGENET1K_V1',
+               # ---- 指标列 ----
                mem_patches=int(mem.shape[0]), img_auroc=round(img_auc, 4),
                pixel_auroc=round(px_auc, 4), threshold=round(thr, 4),
                recall_at_thr=round(rec, 4), false_positive_rate=round(fpr, 4),
@@ -308,11 +388,27 @@ def main():
     ap.add_argument('--coreset-ratio', type=float, default=0.1, help='随机抽样的记忆库比例')
     ap.add_argument('--greedy', type=int, default=0, help='k-center 贪心保留 patch 数，0=用随机抽样')
     ap.add_argument('--thr-pct', type=float, default=99.0, help='阈值取训练集分数的百分位，漏检优先就调高')
+    ap.add_argument('--score-agg', choices=['max', 'top5'], default='max',
+                    help='图像分数：max=最高 patch（默认），top5=最高 5%% patch 平均')
+    ap.add_argument('--blur-sigma', type=float, default=2.0,
+                    help='patch 分数图高斯平滑 sigma；0=关闭平滑')
+    ap.add_argument('--train-limit', type=int, default=0,
+                    help='建库最多使用 N 张 train/good（calibration 图另计）；0=全部')
+    ap.add_argument('--perturb-brightness', type=float, default=1.0,
+                    help='评测采集亮度乘数；默认 1.0')
+    ap.add_argument('--perturb-noise', type=float, default=0.0,
+                    help='评测图像高斯噪声标准差（像素范围 0..1）；默认 0')
+    ap.add_argument('--perturb-blur', type=float, default=0.0,
+                    help='评测图像高斯模糊 sigma（像素）；默认 0')
+    ap.add_argument('--perturb-calibration', action='store_true',
+                    help='对 calibration 良品使用同一扰动重新标定；默认冻结干净阈值')
     ap.add_argument('--limit', type=int, default=0, help='每类只用前 N 张图做冒烟测试')
     ap.add_argument('--calib-ratio', type=float, default=0.0,
                     help='从 train/good 里留出这一比例做阈值标定（0=旧行为，用建库图自评分，阈值会偏低）')
     ap.add_argument('--seed', type=int, default=0)
-    ap.add_argument('--out', default='results')
+    ap.add_argument('--split-seed', type=int, default=None,
+                    help='固定 calibration/train 划分 seed；省略时沿用 --seed')
+    ap.add_argument('--out', default='experiment_data/01_mvtec_gpu/runs/default')
     ap.add_argument('--no-pretrain', action='store_true', help='随机权重，仅用于离线冒烟测试（精度无意义）')
     ap.add_argument('--imagenet-norm', action='store_true',
                     help='对输入做 ImageNet 归一化（默认关；实测 screw 上反而降 3 点，见 README 消融）')
@@ -320,6 +416,16 @@ def main():
     ap.add_argument('--cpu', action='store_true')
     ap.add_argument('--gpu', type=int, default=0, help='指定 GPU 序号，默认 0')
     args = ap.parse_args()
+
+    if args.split_seed is None:
+        args.split_seed = args.seed
+
+    if args.train_limit < 0:
+        ap.error('--train-limit 必须为 0 或正整数')
+    if args.blur_sigma < 0:
+        ap.error('--blur-sigma 必须大于或等于 0')
+    if args.perturb_brightness <= 0 or args.perturb_noise < 0 or args.perturb_blur < 0:
+        ap.error('亮度必须大于 0，噪声和模糊强度必须大于或等于 0')
 
     if not torch.cuda.is_available():
         device = torch.device('cpu')

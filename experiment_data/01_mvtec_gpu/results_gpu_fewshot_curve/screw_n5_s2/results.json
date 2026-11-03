@@ -1,0 +1,32 @@
+[
+  {
+    "category": "screw",
+    "n_train": 5,
+    "n_calib": 96,
+    "n_test": 160,
+    "size": 320,
+    "neighbors": 0,
+    "imagenet_norm": 0,
+    "coreset": "greedy",
+    "coreset_k": 2000,
+    "coreset_ratio": null,
+    "score_agg": "max",
+    "blur_sigma": 2.0,
+    "train_limit": 5,
+    "train_seed": 3,
+    "calib_ratio": 0.3,
+    "thr_pct": 99.0,
+    "seed": 2,
+    "weights": "wide_resnet50_2_timm.pth",
+    "mem_patches": 800,
+    "img_auroc": 0.4679,
+    "pixel_auroc": 0.9437,
+    "threshold": 74.9622,
+    "recall_at_thr": 0.0084,
+    "false_positive_rate": 0.0,
+    "latency_ms": 15.6,
+    "latency_p95_ms": 15.96,
+    "build_seconds": 1.0,
+    "peak_gpu_mb": 173.1
+  }
+]

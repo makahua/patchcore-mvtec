@@ -1,0 +1,18 @@
+[
+  {
+    "category": "grid",
+    "n_train": 185,
+    "n_calib": 79,
+    "n_test": 78,
+    "mem_patches": 18944,
+    "img_auroc": 0.919,
+    "pixel_auroc": 0.9537,
+    "threshold": 94.7287,
+    "recall_at_thr": 0.7719,
+    "false_positive_rate": 0.1429,
+    "latency_ms": 360.34,
+    "latency_p95_ms": 392.51,
+    "build_seconds": 68.7,
+    "peak_gpu_mb": 2353.2
+  }
+]

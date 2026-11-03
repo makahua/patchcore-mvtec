@@ -1,0 +1,2 @@
+﻿category,n_train,n_calib,n_test,size,neighbors,imagenet_norm,coreset,coreset_k,coreset_ratio,score_agg,blur_sigma,train_limit,train_seed,calib_ratio,thr_pct,seed,weights,mem_patches,img_auroc,pixel_auroc,threshold,recall_at_thr,false_positive_rate,latency_ms,latency_p95_ms,build_seconds,peak_gpu_mb
+screw,10,96,160,320,0,0,greedy,2000,,max,2.0,10,2,0.3,99.0,1,wide_resnet50_2_timm.pth,1600,0.5669,0.9611,61.6083,0.0084,0.0,16.96,18.1,4.6,180.6

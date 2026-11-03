@@ -1,0 +1,1413 @@
+{
+  "category": "pcb1",
+  "n_good": 100,
+  "n_defect": 100,
+  "false_alarm": 0.0,
+  "review_good": 0.0,
+  "miss_rate": 0.73,
+  "caught_in_review": 0.01,
+  "caught_direct": 0.26,
+  "review_load": 0.005,
+  "rows": [
+    {
+      "path": "bad\\000.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.718963623046875,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\001.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 43.79133224487305,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\002.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 42.66615295410156,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\003.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 45.78883361816406,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\004.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 46.08150100708008,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\005.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 48.09197235107422,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\006.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 47.89137268066406,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\007.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 49.62615203857422,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\008.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 49.3481559753418,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\009.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 51.86350631713867,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\010.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 52.406063079833984,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\011.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 48.562381744384766,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\012.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 52.65163803100586,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\013.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 48.02200698852539,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\014.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 59.14657974243164,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\015.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.586181640625,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\016.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 47.039894104003906,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\017.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.481544494628906,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\018.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.589019775390625,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\019.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.8515739440918,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\020.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.308650970458984,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\021.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 41.57916259765625,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\022.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.175621032714844,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\023.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.80963897705078,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\024.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.439266204833984,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\025.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.16923904418945,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\026.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 40.24833297729492,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\027.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 36.70757293701172,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\028.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 42.86624526977539,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\029.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.39971923828125,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\030.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.709510803222656,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\031.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.79221725463867,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\032.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 42.360572814941406,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\033.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.47822570800781,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\034.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.040897369384766,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\035.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.44504165649414,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\036.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.02549362182617,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\037.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.878719329833984,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\038.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 41.42356491088867,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\039.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 42.50709915161133,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\040.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 53.622825622558594,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\041.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 68.15872192382812,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\042.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 43.00613784790039,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\043.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 68.01443481445312,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\044.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 55.96864318847656,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\045.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 53.74336624145508,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\046.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 66.18302154541016,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\047.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.61545944213867,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\048.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.145729064941406,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\049.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 41.96067428588867,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\050.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 66.88314819335938,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\051.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 41.52796936035156,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\052.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 41.41974639892578,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\053.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 49.6861686706543,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\054.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 55.0040283203125,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\055.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 50.164146423339844,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\056.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 50.999996185302734,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\057.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.31280517578125,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\058.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.02627182006836,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\059.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 58.4158821105957,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\060.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 36.90801239013672,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\061.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 40.3122673034668,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\062.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.33191680908203,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\063.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.71229553222656,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\064.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.26631546020508,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\065.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 43.490753173828125,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\066.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 40.44721603393555,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\067.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.53374099731445,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\068.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 42.70425796508789,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\069.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.886234283447266,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\070.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.05392837524414,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\071.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.428550720214844,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\072.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 42.61138153076172,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\073.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.74063491821289,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\074.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 36.43190383911133,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\075.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 40.189903259277344,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\076.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.07382583618164,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\077.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.752620697021484,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\078.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.038841247558594,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\079.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 40.02356719970703,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\080.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 45.499000549316406,
+      "verdict": "NG"
+    },
+    {
+      "path": "bad\\081.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.447261810302734,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\082.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 41.89223098754883,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\083.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.87177276611328,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\084.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 44.00477981567383,
+      "verdict": "REVIEW"
+    },
+    {
+      "path": "bad\\085.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 42.91769027709961,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\086.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.333980560302734,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\087.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.65205764770508,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\088.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 39.17441940307617,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\089.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.61759948730469,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\090.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.79790496826172,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\091.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.27674865722656,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\092.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 40.060813903808594,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\093.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.52927017211914,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\094.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.801326751708984,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\095.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 40.49849319458008,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\096.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 38.5647087097168,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\097.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.435325622558594,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\098.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.86396789550781,
+      "verdict": "OK"
+    },
+    {
+      "path": "bad\\099.JPG",
+      "label": "bad",
+      "defect": 1,
+      "score": 37.47813034057617,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0011.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.795509338378906,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0013.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.046058654785156,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0016.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.45772171020508,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0024.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.41012954711914,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0026.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.73400115966797,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0027.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.22547912597656,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0046.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.01186752319336,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0100.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.45881652832031,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0107.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.95547866821289,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0159.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.01331329345703,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0168.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.588348388671875,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0170.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.1353759765625,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0172.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.71943283081055,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0174.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 39.477500915527344,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0178.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.84620666503906,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0187.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.99322509765625,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0196.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 40.26103210449219,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0208.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.80152130126953,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0214.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 43.8545036315918,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0215.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.277217864990234,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0237.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 39.1456413269043,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0261.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.862648010253906,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0286.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.20225524902344,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0294.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.67813491821289,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0297.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.96306610107422,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0303.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.35557174682617,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0306.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 39.558406829833984,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0320.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.42683410644531,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0333.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.824951171875,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0363.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.14918518066406,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0377.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.04378128051758,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0394.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.45685958862305,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0400.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.801082611083984,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0402.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 42.423095703125,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0417.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.57919692993164,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0423.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.918670654296875,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0427.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.69853591918945,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0457.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.065711975097656,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0469.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.19382858276367,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0479.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.04035186767578,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0483.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.405052185058594,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0484.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.12348175048828,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0488.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 35.55187225341797,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0490.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.59127426147461,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0514.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.95044708251953,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0518.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 40.42258834838867,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0520.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.8186149597168,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0525.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.63256072998047,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0545.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.70156478881836,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0552.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 39.3182373046875,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0569.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.82330322265625,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0615.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.05019760131836,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0617.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.45769119262695,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0619.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 39.44664001464844,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0621.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.803321838378906,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0629.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.33095932006836,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0631.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.07930374145508,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0648.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.915916442871094,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0654.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.75705337524414,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0657.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.12069320678711,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0659.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.2550163269043,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0674.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.460487365722656,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0684.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 40.691410064697266,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0685.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.6616325378418,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0688.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.732505798339844,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0690.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.34342575073242,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0694.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 41.38268280029297,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0705.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.24195098876953,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0725.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.85837173461914,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0730.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 42.78163146972656,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0735.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.97747039794922,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0739.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.66539764404297,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0751.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.599342346191406,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0755.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.66133499145508,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0764.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.29131317138672,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0768.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 39.05876541137695,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0779.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.148555755615234,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0784.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.369232177734375,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0796.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.926902770996094,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0797.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 39.12683868408203,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0800.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.262367248535156,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0804.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.912776947021484,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0811.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 39.37609100341797,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0844.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.02809143066406,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0869.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.5090446472168,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0871.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.30211639404297,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0892.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 35.66191482543945,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0900.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.2979621887207,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0920.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 40.105865478515625,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0923.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.06277084350586,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0935.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.71331024169922,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0940.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.16648483276367,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0952.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.71982192993164,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0957.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.13336944580078,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0964.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.16239547729492,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0971.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.21696090698242,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0974.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 38.313602447509766,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0989.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.1776237487793,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\0994.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 36.89685821533203,
+      "verdict": "OK"
+    },
+    {
+      "path": "good\\1000.JPG",
+      "label": "good",
+      "defect": 0,
+      "score": 37.250091552734375,
+      "verdict": "OK"
+    }
+  ]
+}

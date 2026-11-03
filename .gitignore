@@ -3,6 +3,12 @@ syn_data/
 _calib_test/
 _smoke*/
 MVTec_dl/
+MVTec/
+VisA_raw/
+VisA_pytorch/
+mvtec.zip
+VisA_*.tar
+.tmp/
 torch_cache/
 *.pth
 *.pt
@@ -18,6 +24,11 @@ results*/scores/
 !results_best/scores/
 !results_best/scores/*.json
 banks*/
+experiment_data/**/heatmaps/
+experiment_data/**/scores/
+!experiment_data/00_baselines/results_best/scores/
+!experiment_data/00_baselines/results_best/scores/*.json
+experiment_data/04_memory_banks/banks*/
 banks_smoke/
 triage/
 *.log
