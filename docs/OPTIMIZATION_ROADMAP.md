@@ -4,7 +4,7 @@
 
 | 阶段 | 状态 | 已经有的 / 还缺什么 |
 |---|---|---|
-| 0 基线锁定与复现记录 | ⚠️ 部分 | 有：`results.csv` 逐行配置列、`05_indexes/all_results.csv`（36 列）、`file_inventory.csv`、PyQt 演示流程固定。缺：Python/torch/CUDA/权重 SHA256 未写进结果元数据，逐文件划分清单未落盘 |
+| 0 基线锁定与复现记录 | ⚠️ 部分 | 有：`results.csv` 逐行配置列、`05_indexes/all_results.csv`（170 行 × 38 列，`tools/index_results.py` 生成）、`file_inventory.csv`、`weights_sha256.txt`（权重来源与校验值）、PyQt 演示流程固定。缺：Python/torch/CUDA 版本未写进每行结果元数据，逐文件划分清单未落盘 |
 | 1 实现差异审计 | ✅ 已完成 | `docs/vs-upstream.md`（10 项差异、2 项待量化、1 项实现缺陷）；数据角色与口径见 `docs/EXPERIMENT_PROTOCOL.md` |
 | 2 官方细节消融 | ⚠️ 部分 | 已做：`--blur-sigma` 扫 σ=0/0.5/1/2（pixel 峰值在 σ=1）；预处理对照 stretch vs letterbox（`docs/preprocessing-ablation.md`，MVTec 全方图故两者等价，4:3 模拟下分形态有差）。coreset 顺序与边界填充已做（`docs/neighbor-ablation.md`：zero vs roll +1.93 点，base 顺序建库 8.7×）。未做：输入分辨率 320 vs 224 的直接对照 |
 | 3 评测协议与阈值可靠性 | ⚠️ 部分 | 有：`tools/threshold_stability.py`（bootstrap 敏感性）、`--calib-ratio 0.3` 留出良品、名义/实际 FPR 分开报告、split-conformal 阈值（`classify.py --conformal`，0.5% 在 18–117 张标定下 0/15 可达）、PRO/AUPRO（`tools/pro_aupro.py`，AUPRO@FPR≤30% 0.9211 ± 0.0398）。缺：多种子划分 |
@@ -32,7 +32,7 @@
 
 ## 阶段 0：锁定当前基线与复现记录（P0）
 
-> **状态（2026-11-04）：⚠️ 部分完成。** `results_best/results.csv` 每行已带 size/neighbors/coreset/calib/thr/seed/weights；`05_indexes/all_results.csv` 统一了 36 列；`file_inventory.csv` 是文件校验清单。**还缺**：Python/torch/CUDA/权重 SHA256 未写进结果元数据（scores JSON 只有 category/thr/thr_pct/calib/test），逐文件划分清单未单独落盘。
+> **状态（2026-11-04）：⚠️ 部分完成。** `results_best/results.csv` 每行已带 size/neighbors/coreset/calib/thr/seed/weights；`05_indexes/all_results.csv` 由 `tools/index_results.py` 重建为 170 行 × 38 列（补上 preprocess / aspect_crop / neighbor_coreset / neighbor_pad），CI 会校验它与磁盘一致；`file_inventory.csv` 是文件校验清单；`weights_sha256.txt` 记了权重来源与 SHA256。**还缺**：Python/torch/CUDA 版本未写进每行结果元数据（scores JSON 只有 category/thr/thr_pct/calib/test），逐文件划分清单未单独落盘。
 
 ### 工作项
 

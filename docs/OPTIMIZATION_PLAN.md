@@ -53,8 +53,8 @@
 | 仓库 | `makahua/patchcore-mvtec`，11 commits，MIT；本地 HEAD `d8c5c4e` 领先 `origin/main` 1 个提交 |
 | 工作区 | 本次复核产生的文档改动尚未提交（`M README.md`、`M docs/*.md`、新增 `experiment_data/README.md`）；`mvtec.zip` 5.27 GB、`VisA_20220922.tar` 1.93 GB 未入库（`.gitignore` 覆盖） |
 | 代码 | `patchcore_demo.py` 461 行、`classify.py` 548 行、`analyze.py`、`pyqt_demo.py`、`make_synthetic.py`、`tools/` 4 个脚本、`tests/test_metrics.py` |
-| 结果 | `experiment_data/` 21.6 MB：00_baselines 7 组、01_mvtec_gpu 7 组、02_visa 5 组、03_triage 4 份、04_memory_banks 4 套、05_indexes 2 张表（`all_results.csv` 137 行 × 36 列）、06_demo_outputs 2 组 |
-| 配置自证 | `results_best/results.csv` 每行带 `size / neighbors / imagenet_norm / coreset / coreset_k / coreset_ratio / calib_ratio / thr_pct / seed / weights`；`05_indexes/all_results.csv` 把 7 个历史目录统一成 36 列 |
+| 结果 | `experiment_data/` 21.6 MB：00_baselines 7 组、01_mvtec_gpu 7 组、02_visa 5 组、03_triage 4 份、04_memory_banks 4 套、05_indexes 3 份索引（`all_results.csv` 170 行 × 38 列，由 `tools/index_results.py` 生成）、06_demo_outputs 2 组 |
+| 配置自证 | `results_best/results.csv` 每行带 `size / neighbors / imagenet_norm / coreset / coreset_k / coreset_ratio / calib_ratio / thr_pct / seed / weights`；`05_indexes/all_results.csv` 由 `tools/index_results.py` 扫全部 86 个结果目录生成，列取并集（38 列，缺列留空） |
 | 文档 | 18 篇 `docs/*.md` + README 125 行（`install.md`、`interview-notes.md` 已补齐原 README 的长尾内容） |
 | 测试 | `tests/test_metrics.py` 15 条纯 numpy，`python tests/test_metrics.py` → 15/15 通过；CI 见 `.github/workflows/ci.yml`（本机 `.venv` 仍未装 pytest，因 PyPI 被代理阻断） |
 | 已知缺陷 | ~~README 链接 `experiment_data/README.md` 断链~~ 已于 2026-11-04 新建该文件修复，待提交 |
