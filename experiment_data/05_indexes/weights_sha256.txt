@@ -1,0 +1,21 @@
+﻿# 权重溯源（2026-11-04）
+
+主结果使用的骨干权重**不入库**（267 MB），仓库里只记录来源与校验值；
+任何人下载后可用 `certutil -hashfile <file> SHA256` 或 `Get-FileHash` 核对。
+
+| 项 | 值 |
+|---|---|
+| 文件 | `torch_cache/wide_resnet50_2_timm.pth` |
+| SHA256 | `18108459320717df6bf3f3673c0812203d1cffe979cfda43803389354947dc64` |
+| 字节数 | 267709879 |
+| 来源 | timm `wide_resnet50_2.racm_in1k`，`model.state_dict()` 直接保存（无包装） |
+| 与原实现权重的关系 | 上游默认 torchvision `IMAGENET1K_V1`；本项目换成 timm racm_in1k 后 `load_state_dict` 命中 318/320 层（2 个未命中键见日志） |
+| 加载方式 | `patchcore_demo.py --weights <path>`；不传则按 `--no-pretrain` 或在线下载 |
+
+复算命令：
+
+```
+.venv\Scripts\python.exe patchcore_demo.py --data MVTec\mvtech_anomaly_detection --category bottle \
+    --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --blur-sigma 2 \
+    --weights torch_cache\wide_resnet50_2_timm.pth --out experiment_data\01_mvtec_gpu\runs\check
+```

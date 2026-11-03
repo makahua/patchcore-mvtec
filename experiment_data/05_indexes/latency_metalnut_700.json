@@ -1,0 +1,69 @@
+{
+  "category": "metal_nut",
+  "device": "cuda",
+  "size": 320,
+  "mem_patches": 2000,
+  "neighbors": false,
+  "score_agg": "max",
+  "blur_sigma": 2.0,
+  "n": 200,
+  "model_load_ms": 1891.2,
+  "bank_load_ms": 59.5,
+  "cold_first_ms": 420.0,
+  "stages": {
+    "read": {
+      "p50": 0.5,
+      "mean": 4.36,
+      "p95": 9.89
+    },
+    "decode": {
+      "p50": 13.76,
+      "mean": 13.04,
+      "p95": 14.62
+    },
+    "resize": {
+      "p50": 4.06,
+      "mean": 3.87,
+      "p95": 4.38
+    },
+    "h2d": {
+      "p50": 0.53,
+      "mean": 0.54,
+      "p95": 0.64
+    },
+    "forward": {
+      "p50": 12.7,
+      "mean": 12.8,
+      "p95": 13.66
+    },
+    "embed": {
+      "p50": 0.61,
+      "mean": 0.61,
+      "p95": 0.65
+    },
+    "nn": {
+      "p50": 3.4,
+      "mean": 3.41,
+      "p95": 3.44
+    },
+    "post": {
+      "p50": 0.47,
+      "mean": 0.49,
+      "p95": 0.66
+    },
+    "total": {
+      "p50": 37.07,
+      "mean": 39.11,
+      "p95": 45.86
+    }
+  },
+  "gpu_ms": 17.19,
+  "cpu_io_ms": 19.66,
+  "throughput_ips": 26.98,
+  "batch_ms": {
+    "1": 17.65,
+    "4": 62.45,
+    "8": 119.88
+  },
+  "peak_gpu_mb": 354.3
+}

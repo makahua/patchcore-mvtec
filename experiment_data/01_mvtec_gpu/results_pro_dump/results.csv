@@ -1,0 +1,16 @@
+﻿category,n_train,n_calib,n_test,size,neighbors,preprocess,aspect_crop,imagenet_norm,coreset,coreset_k,coreset_ratio,score_agg,blur_sigma,train_limit,train_seed,perturb_brightness,perturb_noise,perturb_blur,perturb_calibration,calib_ratio,thr_pct,seed,split_seed,weights,mem_patches,img_auroc,pixel_auroc,threshold,recall_at_thr,false_positive_rate,latency_ms,latency_p95_ms,build_seconds,peak_gpu_mb
+bottle,147,62,83,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,1.0,0.9858,37.9943,1.0,0.0,18.6,18.6,130.1,188.7
+cable,157,67,150,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9846,0.9801,47.9298,0.8152,0.0345,28.63,31.87,142.5,189.5
+capsule,154,65,132,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9625,0.9889,36.3583,0.6422,0.0435,28.3,31.08,142.1,189.5
+carpet,196,84,117,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9843,0.9858,33.2487,0.9551,0.0714,28.57,31.09,185.4,189.5
+grid,185,79,78,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9641,0.9553,34.0303,0.9298,0.1429,19.82,21.19,181.1,189.5
+hazelnut,274,117,110,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,1.0,0.9872,49.2352,1.0,0.025,28.16,31.66,273.5,190.5
+leather,172,73,124,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,1.0,0.9876,30.8178,1.0,0.125,27.16,28.99,154.6,190.5
+metal_nut,154,66,115,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.999,0.9838,45.6516,0.957,0.0,18.9,20.5,136.9,190.5
+pill,187,80,167,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9555,0.9781,40.3926,0.8085,0.0,17.98,18.22,166.8,190.5
+screw,224,96,160,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9557,0.9845,42.9844,0.2689,0.0,17.95,18.35,184.6,190.5
+tile,161,69,117,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,1.0,0.9198,40.4212,0.9643,0.0,22.38,24.68,128.5,190.5
+toothbrush,42,18,42,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9472,0.99,36.4536,0.9333,0.1667,23.15,25.55,31.3,190.5
+transistor,150,63,100,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9962,0.949,45.678,0.75,0.0,21.98,22.6,118.3,190.5
+wood,173,74,79,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9912,0.9081,47.1117,0.9333,0.0,28.98,35.9,490.2,190.5
+zipper,168,72,151,320,0,stretch,0.0,0,greedy,2000,,max,2.0,0,1,1.0,0.0,0.0,0,0.3,99.0,0,0,wide_resnet50_2_timm.pth,2000,0.9677,0.9801,32.4638,0.9328,0.0938,25.15,30.82,186.1,190.5
