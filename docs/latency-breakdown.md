@@ -1,0 +1,158 @@
+# 端到端时延拆解
+
+> 复核日期 2026-11-04　｜　脚本 `tools/latency_breakdown.py`　｜　原始数据 `experiment_data/05_indexes/latency_bottle.json`
+>
+> 结论先说：**README 里的 19.7 ms 只是 GPU 计算段，端到端是 35.5 ms（1.8×）**。最大单项不是模型，是 **PNG 解码（13.0 ms，36.7%）**。
+
+## 1. 为什么要拆
+
+`results_best/results.csv` 的 `latency_ms` 在 `patchcore_demo.py:314-325` 里计时，**只包住 `patch_scores()`**——图早就 `load_img()` 成 tensor 了，计时从「tensor 已在内存」开始到「分数算完」结束。这个数对做算法对比是对的，但它**不是产线节拍**：产线拿到的是相机帧，要走完 解码 → 预处理 → 搬显存 → 前向 → 检索 → 判定 才算一张。
+
+拆开的目的是回答三个问题：
+
+1. 报告里的 19.7 ms 到底覆盖了哪一段？（答：h2d 之后全部，复测 17.6 ms）
+2. 端到端还差多少、差在哪？（答：差 18 ms，几乎全在 CPU 侧）
+3. 优化该往哪投？（答：先解码并行，再谈 ONNX/INT8）
+
+## 2. 测量协议
+
+| 项 | 设置 |
+|---|---|
+| 机器 | RTX 3050 Laptop 4 GB（`CUDA_VISIBLE_DEVICES` 默认），torch 2.7.0+cu128 |
+| 模型 | WR50（timm `racm_in1k` 权重，命中 318/320 层），输入 320×320 |
+| 记忆库 | `banks/bottle.npz`，2000×1536 fp32（m=1%，greedy 精确贪心） |
+| 数据 | bottle `test/` 共 83 张（good + broken_large/broken_small/contamination），按目录轮转取 200 次 |
+| 预热 | 前 10 张不进统计；冷启动首张单列 |
+| 统计 | 每张逐阶段 `perf_counter()`，GPU 阶段前后 `torch.cuda.synchronize()`；报**中位 / 均值 / p95**，占比用均值 |
+| 定位 | 只测「库已建好之后」的推理；建库与标定是一次性成本，见第 4 节 |
+
+```bash
+.venv\Scripts\python.exe tools\latency_breakdown.py ^
+    --bank experiment_data\04_memory_banks\banks\bottle.npz ^
+    --data MVTec\mvtech_anomaly_detection --category bottle --n 200 ^
+    --out experiment_data\05_indexes\latency_bottle.json
+```
+
+## 3. 结果
+
+### 3.1 逐阶段（单张、batch=1）
+
+| 阶段 | 做什么 | 中位 ms | p95 ms | 占比 |
+|---|---|---:|---:|---:|
+| `read` | `open().read()` 读文件字节 | 0.36 | 0.47 | 1.1% |
+| `decode` | PNG 解码 + `convert('RGB')` | **12.99** | 14.13 | **36.7%** |
+| `resize` | 缩到 320×320 + 转 tensor | 4.40 | 5.24 | 12.7% |
+| `h2d` | CPU → GPU 拷贝（1×3×320×320） | 0.50 | 0.65 | 1.4% |
+| `forward` | WR50 stem+layer1..3 + 上采样拼接 | **12.64** | 12.93 | **35.5%** |
+| `embed` | 3×3 邻域平均 + reshape | 0.62 | 0.68 | 1.8% |
+| `nn` | 分块 `cdist` 2000×1536 + 取 min | 3.38 | 3.44 | 9.5% |
+| `post` | 高斯平滑 + max 聚合 + 判定 | 0.45 | 0.68 | 1.4% |
+| **合计** | | **35.53** | **36.86** | |
+
+- 均值 35.72 ms，p95 36.86 ms，**逐张抖动 1.33 ms**（p95−p50）——单流节拍很稳。
+- **CPU/IO 段 18.39 ms（52%）> GPU 段 17.15 ms（48%）**。这是全文最该记住的一句。
+- 单流吞吐 **28.1 张/s**。
+
+### 3.2 和报告值的关系
+
+| 口径 | 数值 | 说明 |
+|---|---|---|
+| `results.csv` 记录 | 19.7 ms | `patch_scores()` 内部，图已解码/裁剪好 |
+| 本次复测同口径 | 17.6 ms | `h2d+forward+embed+nn+post`，差 2 ms 属首张冷启动摊入与计时噪声 |
+| 端到端（本机、PNG 输入） | **35.5 ms** | 多出 `read+decode+resize` = 17.8 ms |
+
+也就是说，**19.7 ms 是可对外引用的「算法段」数字，但不能当产线节拍报**；两者差 1.8 倍，而这个差异 100% 在 CPU 侧。
+
+### 3.3 batch 吞吐（多工位复用一张卡的场景）
+
+预取并 resize 好，只计 `forward+embed+nn+post`：
+
+| batch | 每张 ms | 张/s |
+|---:|---:|---:|
+| 1 | 17.63 | 56.7 |
+| 4 | 15.48 | 64.6 |
+| 8 | 14.85 | 67.3 |
+
+batch 8 把 GPU 段压到 **14.85 ms/张（+19% 吞吐）**，再大就会被 4 GB 显存和 `cdist` 的临时张量限制。但**端到端仍是解码瓶颈**：batch 8 时 8×13.0=104 ms 的解码是串行的，吞吐落到 (8 张)/(104+119 ms) ≈ 36 张/s。
+要吃到 batch 的收益，必须**多线程解码 + 预取队列**：8 线程把 decode+resize 摊到 (13.0+4.4)/8 ≈ 2.2 ms/张，估算端到端 ~45–55 张/s（**估算值，未实现，不能在面试里当实测说**）。
+
+### 3.4 一次性成本（开机 / 换型）
+
+| 项 | 耗时 |
+|---|---|
+| 权重载入 + 模型建图 | 1743 ms |
+| 记忆库 npz 载入 + 上显存 | 48.5 ms |
+| 冷启动首张（含首次显存分配） | 360 ms |
+| 推理期显存峰值（权重+库+激活） | 354 MB |
+
+对应产线意义：**换型 ≈ 1.8 s**（可接受，工位重启时做）；稳态只吃 354 MB，4 GB 卡能塞多工位（但见 3.3 的解码限制）。
+
+### 3.5 分辨率放大：1024² 的原生图，端到端 62 ms
+
+同一份代码、同一张卡、同一组参数（`size=320`、`n=200`、`warmup=20`、记忆库 2000×1536），只换类别，让**原生输入分辨率**从 700² 涨到 1024²（MVTec 的类并不等大）：
+
+| 类 | 原生尺寸 | read | decode | resize | forward | 端到端 p50 | 吞吐 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| metal_nut | 700² | 0.50 | 13.76 | 4.06 | 12.70 | **37.07 ms** | 27.0 张/s |
+| bottle | 900² | 0.46 | 17.04 | 5.65 | 12.67 | **42.18 ms** | 23.7 张/s |
+| carpet | 1024² | 1.30 | 31.08 | 6.64 | 14.80 | **62.35 ms** | 16.0 张/s |
+
+三条读法：
+
+1. **增长全在 CPU 侧。** 700²→1024²，端到端 +25.3 ms（+68%），其中 decode +17.3 ms、resize +2.6 ms，GPU 段只从 17.2 涨到 20.1 ms（且这 2.9 ms 主要是连续跑时 GPU 时钟漂移，`forward` 的输入都是 320²，理论耗时应恒定）。单流吞吐因此从 27.0 掉到 16.0 张/s。
+2. **decode 不是「像素数的线性函数」。** 按像素折算，700² 是 28 ms/Mpx、900² 是 21 ms/Mpx、1024² 是 30 ms/Mpx；carpet 是高频纹理 JPEG，同尺寸下熵更高，解码更贵。所以**别用「每 Mpx 多少 ms」做预算**，要按具体产线图测。
+3. **19.7 ms 的算法段数字对 1024² 类更失真。** 端到端 62.35 ms 是算法段的 3.2 倍（900² 类是 2.1 倍、700² 类是 1.9 倍）。相机若出 1024²，按 19.7 ms 报节拍会差一个数量级。
+
+复现：`python tools/latency_breakdown.py --bank experiment_data/04_memory_banks/banks/bottle.npz --category carpet --n 200 --warmup 20 --out experiment_data/05_indexes/latency_carpet_1024.json`
+（`--category` 只决定读哪类的图；记忆库内容不影响 `nn` 的耗时，用 bottle 的库即可。）
+
+> 注意测量口径：bottle 在两轮里分别测到 35.5 ms（`--warmup 10`）与 42.2 ms（`--warmup 20`，与本节同批），差 6.7 ms 全在 decode——**单张 CPU 解码在同一台笔记本上就有 ±19% 的抖动**（后台进程、CPU 频率与热状态）。所以本节三档必须当作同一批次横向比较，不能与 §3.1 的绝对数直接相减。
+
+### 3.6 再往上：2048² / 4096²（合成外推，测解码的天花板）
+
+MVTec 最大只有 1024²，为了给出高分辨率趋势，把 carpet 的 24 张 1024² 测试图 bicubic 上采样到 2048²、4096² 存成 PNG，再跑同一套计时（记忆库固定 bottle 2000×1536，`--n 60/40`、`--warmup 10/6`）：
+
+| 原生尺寸 | 文件均值 | read | decode | resize | forward | 端到端 p50 | 吞吐 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1024² | 1.8 MB | 1.30 | 31.08 | 6.64 | 14.80 | **62.35 ms** | 16.0 张/s |
+| 2048² | 5.6 MB | 1.77 | 92.85 | 14.60 | 14.73 | **130.27 ms** | 7.7 张/s |
+| 4096² | 15.3 MB | 5.88 | 305.83 | 47.74 | 21.61 | **446.59 ms** | 2.2 张/s |
+
+四条读法：
+
+1. **端到端近似随像素数线性涨。** 1.05 → 4.19 → 16.8 Mpx 对应 62 → 130 → 447 ms，折算 59 → 31 → 27 ms/Mpx；但注意这**不是** decode 单价下降，而是上采样图更好压（见第 4 点）。
+2. **decode 占比越往上越绝对。** 1024² 约一半（31/62），2048² 到 **71%**，4096² 到 **74%**；GPU 段只从 20.0 涨到 29.2 ms（输入都是 320²），完全不是瓶颈。2048² 时 resize 也涨到 14.6 ms（PIL BILINEAR 从 2048² 缩到 320²），4096² 时 47.7 ms——**「缩放」在高分辨率下变成第二大头**。
+3. **19.7 ms 的失真倍数随分辨率放大**：1024² 3.2×、2048² 6.6×、4096² 22.7×。若产线是 4K 面阵或线扫拼接，按算法段报节拍会差一个数量级以上，必须走「相机帧缓冲直入 + 多线程解码 + GPU 缩放」。
+4. **这是下界，不是真实相机图。** bicubic 上采样让图像更平滑、PNG 压缩率更高：文件从 1024² 的 1.72 MB/Mpx 降到 4096² 的 0.93 MB/Mpx，decode 单价也从 30 ms/Mpx 掉到 18 ms/Mpx。真实 4096² 相机原图有传感器噪声与更细纹理，解码只会更慢，所以本节只能读趋势（线性、decode 占绝对主导），不能当绝对值引用。
+
+复现：
+```powershell
+# 1) 生成合成高分辨率集（一次性，产物不入仓、用完即删）
+#    python -c "from PIL import Image; import glob,os;
+#    ...把 MVTec/mvtech_anomaly_detection/carpet/test/good/*.png 前 24 张
+#    resize((2048,2048)) / resize((4096,4096)) 后存到 _tmp_res/<cat>/test/good/"
+# 2) 计时
+python tools/latency_breakdown.py --bank experiment_data/04_memory_banks/banks/bottle.npz --data _tmp_res --category carpet2048 --n 60 --warmup 10 --out experiment_data/05_indexes/latency_carpet_2048.json
+python tools/latency_breakdown.py --bank experiment_data/04_memory_banks/banks/bottle.npz --data _tmp_res --category carpet4096 --n 40 --warmup 6  --out experiment_data/05_indexes/latency_carpet_4096.json
+```
+
+## 4. 四个可以拿去面试讲的判断
+
+1. **报数字必须报边界。** 19.7 ms 是算法段，35.5 ms 是端到端。谁把 19.7 说成节拍，一问「图怎么进来的」就露。这次拆解本身就是一个「知道自己在测什么」的证据。
+2. **瓶颈不在模型。** PNG 解码 13.0 ms 占 36.7%，比整个前向（12.6 ms）还贵。换相机原始帧（Bayer/YUV buffer）能直接省掉这项，但要去马赛克 + 色彩校正，通常 2–5 ms——**仍然说明「拿 PNG 数据集当产线输入」本身就带 10 ms 级的水分**。
+3. **优化顺序反直觉。** GPU 段只占 48%，所以 ONNX/INT8 最多把端到端压到 ~26 ms（−26%）；而**解码并行 + 流水线**能把它压到 ~20 ms 量级，代价是几行 threading。先做便宜的。
+4. **分辨率比模型更决定节拍。** 同一张卡、同一个 `size=320`，原生图从 700² 换到 1024²，端到端 37→62 ms（+68%），而 GPU 段几乎不动；合成外推到 2048²/4096² 是 130/447 ms，decode 占 71%/74%。报节拍前先问「相机出多大图」。
+
+## 5. 局限（写清楚，别硬吹）
+
+- 单卡（3050 Laptop）+ 三档真实分辨率（metal_nut 700²、bottle 900²、carpet 1024²），未覆盖全部 15 类；2048²/4096² 是 bicubic 上采样的合成图，解码偏乐观，只能读趋势；`nn` 的占比还随记忆库大小变（本表固定 2000 patch）。
+- `read` 只有 0.36 ms，说明**文件在页缓存里**；冷盘首次读会显著更慢，本表不代表冷启动 IO。
+- 解码是 PIL 单线程；未测 libjpeg-turbo、nvJPEG、DALI 等加速方案。
+- 未做 ONNX / TensorRT / INT8 对照，上面 26 ms 是线性外推。
+- 计时含 Python 循环与 GIL 开销，生产实现（C++/Triton）会再快一些。
+
+## 6. 下一步
+
+- 成本模型（P1-4）直接引用本文的 35.5 ms 端到端与 28.1 张/s。
+- 若要继续压：先写 `--prefetch N` 的解码线程池，再考虑 `torch.compile` / ONNX。
+- 换型时间 1.8 s 主要花在权重载入（1743 ms），可用 `torch.save(model.state_dict())` 预热或常驻进程。

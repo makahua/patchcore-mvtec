@@ -1,10 +1,26 @@
 # PatchCore 项目优化路线图
 
+## 状态总览（2026-11-04 复核）
+
+| 阶段 | 状态 | 已经有的 / 还缺什么 |
+|---|---|---|
+| 0 基线锁定与复现记录 | ⚠️ 部分 | 有：`results.csv` 逐行配置列、`05_indexes/all_results.csv`（36 列）、`file_inventory.csv`、PyQt 演示流程固定。缺：Python/torch/CUDA/权重 SHA256 未写进结果元数据，逐文件划分清单未落盘 |
+| 1 实现差异审计 | ✅ 已完成 | `docs/vs-upstream.md`（10 项差异、2 项待量化、1 项实现缺陷）；数据角色与口径见 `docs/EXPERIMENT_PROTOCOL.md` |
+| 2 官方细节消融 | ⚠️ 部分 | 已做：`--blur-sigma` 扫 σ=0/0.5/1/2（pixel 峰值在 σ=1）；预处理对照 stretch vs letterbox（`docs/preprocessing-ablation.md`，MVTec 全方图故两者等价，4:3 模拟下分形态有差）。coreset 顺序与边界填充已做（`docs/neighbor-ablation.md`：zero vs roll +1.93 点，base 顺序建库 8.7×）。未做：输入分辨率 320 vs 224 的直接对照 |
+| 3 评测协议与阈值可靠性 | ⚠️ 部分 | 有：`tools/threshold_stability.py`（bootstrap 敏感性）、`--calib-ratio 0.3` 留出良品、名义/实际 FPR 分开报告、split-conformal 阈值（`classify.py --conformal`，0.5% 在 18–117 张标定下 0/15 可达）、PRO/AUPRO（`tools/pro_aupro.py`，AUPRO@FPR≤30% 0.9211 ± 0.0398）。缺：多种子划分 |
+| 4 PyQt 演示 | ⚠️ 部分 | 单图检测、热力图、OK/REVIEW/NG、耗时显示已有；类别/bank 切换与样例按钮未确认 |
+| 5 性能与鲁棒性 | ⚠️ 部分 | 扰动：亮度（×0.8）、噪声（σ=0.05/0.10）、模糊（σ=1px）各跑冻结/重标定两组，汇总 `docs/robustness.md`；旋转/JPEG 未实现；**耗时 8 段拆解已做**（`docs/latency-breakdown.md`，端到端 35.5 ms @900²，1024² 62.4 ms）；FAISS 对照未做 |
+| 6 对外材料 | ✅ 已完成 | README 压到 125 行（指标表 + 六条结论 + 设计决策 + 边界）；长尾拆到 `docs/install.md`、`docs/interview-notes.md`（坑 / 简历 / 面试问答 / 30 分钟复现 / 自检与 CI）；CI 已建（`.github/workflows/ci.yml`，numpy-only 23 条测试 + 断链检查）；`experiments.md`、`interview-qa.md` 不再单列，内容并入上述两篇 |
+
+> 与 `docs/OPTIMIZATION_PLAN.md` 的 §0.0 表互相对应；两边口径要一起改。
+
+---
+
 ## 目标
 
 把当前面向面试演示的 MVTec AD 独立实现，逐步变成**可解释、可复现、可公平对照 AWS 官方实现**的项目。优化的首要目标不是追一个更高 AUROC，而是先保证每个实验都能说明白“改了什么、结果是否同口径、代价是多少”。
 
-当前基线记录：15 类 image AUROC macro 0.9805、pixel AUROC macro 0.9709、pooled image AUROC 0.8812；greedy coreset 2,000 patch，输入 320。上述数字是当前实现已有结果，不是下列计划任务的验收承诺。每类已有独立分数文件，可离线复算。
+当前基线记录：15 类 image AUROC macro 0.9805、pixel AUROC macro 0.9709、pooled image AUROC 0.8812、AUPRO@FPR≤30% macro 0.9211（@10% 0.8068）；greedy coreset 2,000 patch，输入 320。上述数字是当前实现已有结果，不是下列计划任务的验收承诺。每类已有独立分数文件，可离线复算。
 
 ## 约束与对照原则
 
@@ -15,6 +31,8 @@
 - 每组性能测试预热后重复测量，报告 latency median/p95、吞吐、建库时间和峰值显存；推理时间不混入读图和建库时间。
 
 ## 阶段 0：锁定当前基线与复现记录（P0）
+
+> **状态（2026-11-04）：⚠️ 部分完成。** `results_best/results.csv` 每行已带 size/neighbors/coreset/calib/thr/seed/weights；`05_indexes/all_results.csv` 统一了 36 列；`file_inventory.csv` 是文件校验清单。**还缺**：Python/torch/CUDA/权重 SHA256 未写进结果元数据（scores JSON 只有 category/thr/thr_pct/calib/test），逐文件划分清单未单独落盘。
 
 ### 工作项
 
@@ -31,6 +49,8 @@
 
 ## 阶段 1：实现差异审计，先对齐 PatchCore 关键链路（P0）
 
+> **状态：✅ 完成（2026-11-04）。** 见 `docs/vs-upstream.md`：预处理、邻域聚合（`torch.roll` 环绕缺陷）、coreset 机制、权重、阈值口径、PRO 缺失等 10 项，逐项标了影响与是否已量化。
+
 建立 `docs/vs-upstream.md` 差异表，逐项对照 AWS 官方实现和当前脚本，标注“已一致 / 不同 / 未确认 / 影响待测”：
 
 1. **Backbone 与输入**：WR50 权重、RGB 范围、归一化、resize/crop、插值与 antialias。
@@ -46,6 +66,8 @@
 - 所有“与官方差 X 个点”的表述，注明比较配置和指标口径；配置不一致时只称为参考值。
 
 ## 阶段 2：做官方关键细节的可控消融（P1）
+
+> **状态：⚠️ 部分完成。** 只做了实验 D 的一部分：`--blur-sigma 0/0.5/1/2` 在 screw 上扫过（image AUROC 0.9158/0.9326/0.9543/0.9553，pixel 峰值在 σ=1，见 `docs/RESULTS_OPTIMIZATION_PLAN.md`）；实验 A/B/C 未做。
 
 每项先在 bottle、screw、wood、tile 四类进行筛查，再对有效且显存可承受的配置跑 15 类。保留当前实现作为对照组。
 
@@ -78,7 +100,9 @@
 
 ## 阶段 3：补齐评测协议和阈值可靠性（P1）
 
-1. 增加 PRO 指标并明确其积分范围和像素 mask 处理方式。
+> **状态：⚠️ 部分完成（2026-11-04）。** 有 `tools/threshold_stability.py`（bootstrap 敏感性诊断）、`--calib-ratio 0.3` 留出良品标定、名义目标过杀与实际观测过杀分开报告（README 产线曲线）、split-conformal 阈值、**PRO/AUPRO**（`tools/pro_aupro.py` + `docs/pro-aupro.md`：AUPRO@30% 0.9211、@10% 0.8068，tile 的 image AUROC 满分而 AUPRO 仅 0.8181），以及 **成本模型**（`report --cost FN,FP,REV --prevalence P`：validation 选点 5% × 1.5×，test 0.1814/件，比默认 0.5% × 1.2× 省 22%，见 `docs/cost-model.md`）。**还缺**：多种子划分（每类目前 1 个 seed）。
+
+1. ~~增加 PRO 指标并明确其积分范围和像素 mask 处理方式。~~ ✅ 已完成：`tools/pro_aupro.py`（FPR 截断 0.3 与 0.1 两档、GT 掩码在原图分辨率读取、4 邻接连通域、每块等权），见 `docs/pro-aupro.md`。
 2. 当前阈值稳定性 bootstrap 仅作敏感性诊断。扩大独立良品 calibration 集，并单独保存验证集；test 集不用于选阈值、NG ratio 或成本参数。
 3. 用多个图像级 seed 重复划分；报告阈值分布、良品过杀、缺陷漏检、复检比例的均值/区间和分母。
 4. 区分“名义目标 FPR”和“有限 calibration 样本上的实际观测 FPR”。若 0.5% 目标的样本量不足以分辨，明确标记不可可靠估计。
@@ -90,6 +114,8 @@
 - 工作点数字附样本量与不确定性，不写成量产保证。
 
 ## 阶段 4：完善 PyQt 演示（P2）
+
+> **状态：⚠️ 部分完成。** 单图检测、热力图、OK/REVIEW/NG 三档、耗时显示已在 `pyqt_demo.py`（7 KB）；类别/bank 切换、样例按钮、DPI 验证未确认。
 
 1. 保留已有单图检测、热力图、分数和 OK/REVIEW/NG。
 2. 增加类别/bank 选择、阈值说明、设备和推理耗时显示，以及错误提示。
@@ -103,6 +129,8 @@
 - 输出能对应到保存的模型配置和阈值，不把演示阈值解释成实际产线保证。
 
 ## 阶段 5：性能与鲁棒性（P2）
+
+> **状态：⚠️ 部分完成。** 扰动只落地了两个：亮度 ×0.8（可重标定恢复）与模糊 σ=1px（排序崩到 0.4583，重标定也救不回），见 `docs/RESULTS_OPTIMIZATION_PLAN.md`；旋转/JPEG 未实现。耗时分解、FP16、FAISS 对照均未做。
 
 ### 性能
 
@@ -118,6 +146,8 @@
 - 先做轻量级扰动，再扩到全类别；记录可能失效的类别和原因。
 
 ## 阶段 6：收口与对外材料（P3）
+
+> **状态：❌ 大部分未做。** README 已有「独立简化实现」定位；`experiments.md`、`interview-qa.md` 不存在。
 
 - README 给出“独立简化实现”的定位、官方差异、复现环境和指标口径。
 - `docs/experiments.md` 记录全部成功和失败消融，保留失败实验。

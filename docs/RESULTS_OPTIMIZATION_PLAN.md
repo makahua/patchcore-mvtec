@@ -1,10 +1,10 @@
 # PatchCore 结果优化计划
 
-日期：2026-11-03
+日期：2026-11-03（2026-11-04 复核：本机解释器为 Python 3.13.9，命令中的 `python` 应改为 `.venv\Scripts\python.exe`；`--data E:/MVTec` 应改为 `--data MVTec/mvtech_anomaly_detection`，原因见 `docs/REPRODUCE.md`）
 
 ## 目标与现状
 
-当前主配置为 `greedy=2000, size=320`：MVTec AD 15 类宏平均 image AUROC 0.9805、pixel AUROC 0.9709，平均推理与最近邻评分约 19.7 ms，峰值显存约 190 MB。核心瓶颈已不是整体排序能力，而是少数难类在固定阈值下的漏检，以及低误报率估计缺少足够标定样本。
+当前主配置为 `greedy=2000, size=320`：MVTec AD 15 类宏平均 image AUROC 0.9805、pixel AUROC 0.9709，平均推理与最近邻评分约 19.7 ms（**算法段**：不含读图与 PNG 解码；端到端 900² 42.2 ms、1024² 62.4 ms，见 `docs/latency-breakdown.md`），峰值显存约 190 MB。核心瓶颈已不是整体排序能力，而是少数难类在固定阈值下的漏检，以及低误报率估计缺少足够标定样本。
 
 已有结果显示，名义 0.5% 过杀工作点下宏平均召回约 82.8%；每类标定良品只有 18–117 张，因此不能把该工作点解释为产线保证。`experiment_data/00_baselines/results_neigh/` 的 grid 单类实验也显示 9 邻域配置明显增加时延和显存且该类 AUROC 下降，不作为默认优化方向。
 
