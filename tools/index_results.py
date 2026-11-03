@@ -86,10 +86,13 @@ def main(argv=None):
     out_path = os.path.join(a.root, a.out)
     if a.check:
         old = io.open(out_path, encoding='utf-8', newline='').read() if os.path.exists(out_path) else ''
-        if old == text:
+        # 行尾可能被 git 归一（core.autocrlf）：Windows 工作区 CRLF、CI 检出 LF，
+        # 比较内容而不比较换行符，否则同一个提交在 Linux 上会误报过期。
+        norm = lambda t: t.replace('\r\n', '\n').replace('\r', '\n')
+        if norm(old) == norm(text):
             print('索引一致：%d 行 / %d 列' % (len(rows), len(cols)))
             return 0
-        old_n = old.count('\r\n')
+        old_n = norm(old).count('\n')
         print('索引过期：磁盘 %d 行，文件 %d 行（先跑 python tools/index_results.py 重建）' % (len(rows), old_n),
               file=sys.stderr)
         return 1
