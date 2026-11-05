@@ -113,11 +113,11 @@ patchcore-mvtec/
   analyze.py           # 批量结果对照；pyqt_demo.py 单图 GUI
   tools/               # pro_aupro / latency_breakdown / conformal_threshold / check_links / 数据准备
   tests/               # 23 条纯 numpy 测试（15 指标+成本、8 PRO/AUPRO）
-  docs/                # 17 篇方法与实验文档
+  docs/                # 20 篇方法与实验文档
   experiment_data/     # 结果索引（大文件由 .gitignore 排除）
 ```
 
-文档索引：[vs-upstream](docs/vs-upstream.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[优化计划](docs/OPTIMIZATION_PLAN.md)｜[结果优化记录](docs/RESULTS_OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)。
+文档索引：[vs-upstream](docs/vs-upstream.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)。
 
 ## 许可
 

@@ -13,8 +13,11 @@
 | `04_memory_banks` | 记忆库 `.npz`（MVTec 1 套 + VisA 3 套） | `banks`、`banks_visa_fpr05`、`banks_visa_pre_orderfix`、`banks_visa_top5_fpr05` | ❌ `.gitignore` |
 | `05_indexes` | 汇总索引 | `all_results.csv`（**170 行 × 38 列，合并 86 个结果目录**，由 `tools/index_results.py` 生成，勿手改）、`file_inventory.csv`（文件校验清单）、`weights_sha256.txt`（权重来源与校验值）、`latency_*.json`（8 段时延：metal_nut 700² / bottle 900² / carpet 1024² 为真实分辨率，2048²/4096² 为 bicubic 上采样合成图、只读趋势）、`pro_aupro.json` + `pro_table.md`（PRO/AUPRO 逐类结果，`pixel_dumps/` 由 `--dump-pixel` 再生成故不入仓） | ✅ 除 `pixel_dumps/` |
 | `06_demo_outputs` | 演示产物 | `demo_out`、`demo_out_interview`（`scores.json` + 热力图） | ✅ 仅分数 |
+| `06_optimization` | 执行版计划的规范化实验包（每目录六件套：`config.json` / `per_image.csv` / `metrics.json` / `summary.csv` / `timing.json` / `run.log`；`per_image.csv` 的 `split` 为 `held_out`（标定留出）+ `test`） | `00_baseline`、`05_latency`（串行 vs 多线程解码+有界预取，见 [`docs/latency-breakdown.md`](../docs/latency-breakdown.md) §3.7）、`01_coreset_fixed`（screw k=500/1000/2000/4000）、`02_coreset_projected`（screw ratio=1% 与同预算 0.558%）、`03_features`（特征层消融 2+3 / 1+2 / 1+2+3，见 [`docs/features-ablation.md`](../docs/features-ablation.md)）、`03_smoke_coreset`、`04_representative`（bottle/grid）；`00_protocol_smoke` 缺 5 件，为早期协议冒烟，保留原样；`05_audit` 为 screw 复现探针与旧代码对照（结论见 `docs/baseline-acceptance.md`）、`06_threshold`（阈值工作点与 bootstrap 区间，见 [`docs/threshold-stability.md`](../docs/threshold-stability.md)）、`07_aupro_backfill`（coreset 8 个关键点补测 AUPRO，见 [`docs/coreset-budget.md`](../docs/coreset-budget.md) §8）；汇总用 `tools/summarize_runs.py`（coreset）、`tools/summarize_features.py`（特征层）与 `tools/threshold_ci.py`（阈值） | ✅ 除 `native/` 下的权重与记忆库 |
 
 ## 当前主结果（`00_baselines/results_best`）
+
+> 该表的运行产物（`scores/*.json`）生成于 config 尚未归档的早期状态，与任务 A 规范化基线存在系统性差异（screw −3.13 点、capsule +2.83 点，macro 0.9805 → 0.9789）。差异排查与结论见 [`docs/baseline-acceptance.md`](../docs/baseline-acceptance.md)。
 
 配置：WR50 timm 权重、`--size 320`、`--greedy 2000`、先良品留出 `--calib-ratio 0.3` 标定、`--thr-pct 99`、score 聚合 `max`、高斯 `σ=2`。
 

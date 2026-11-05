@@ -23,6 +23,10 @@
 
 `patchcore_demo.py` 每次运行在 `manifests/<category>.json` 写下建库、calibration 和 test 的相对路径清单。`--split-seed` 固定 calibration/train 划分；`--seed` 控制建库抽样及 coreset。少样本对照应跨训练数量共用相同 split seed 与 test 清单。
 
+新的优化实验使用 `tools/run_experiment.py --run-dir <唯一目录> -- <patchcore_demo.py 参数...>` 启动。它将原生输出写入 `native/`，并在 run 根目录整理 `config.json`、`per_image.csv`、`metrics.json`、`summary.csv`、`timing.json`、`run.log`。旧结果可用 `--package-existing` 补生成标准产物，不会重跑模型。`per_image.csv` 标记 held-out calibration、train self-score fallback 和 test，不能把 fallback 自评分误认为留出 calibration。
+
+MVTec 当前流程没有独立 validation split；其官方 test 已反复参与项目探索，故全部 MVTec test 结果均按 development analysis 解释。不可把同一 test 拆分重命名为独立 holdout。需要真正外部泛化结论时，使用未参与选择的新批次或未触碰外部数据。
+
 结果目录必须独立，不覆盖历史结果。宏平均与 pooled 指标分开报告。PR-AUC 需附测试集缺陷占比；MVTec 当前测试集缺陷比例约 73%，该 PR-AUC 不能直接外推到低缺陷率产线。
 
 ## 已知限制
