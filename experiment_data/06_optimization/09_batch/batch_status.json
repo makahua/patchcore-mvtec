@@ -1,0 +1,14 @@
+[
+  {
+    "run": "experiment_data/06_optimization/09_batch/screw_b1_fp32_seed_000",
+    "rc": 0
+  },
+  {
+    "run": "experiment_data/06_optimization/09_batch/screw_b8_fp32_seed_000",
+    "rc": 0
+  },
+  {
+    "run": "experiment_data/06_optimization/09_batch/bottle_b8_fp16_seed_000",
+    "rc": 0
+  }
+]

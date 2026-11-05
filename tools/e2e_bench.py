@@ -57,6 +57,7 @@ def main():
     ap.add_argument("--fp16", action="store_true",
                     help="前向 autocast(fp16) + 检索 fp16（默认关，精度闸门见 docs/e2e-ceiling.md）")
     ap.add_argument("--out", default="")
+    ap.add_argument("--batch", type=int, default=1, help="批推理大小（默认 1）")
     a = ap.parse_args()
 
     import torch
@@ -93,56 +94,70 @@ def main():
 
     mem_h = mem.half() if a.fp16 else mem
 
-    def infer(x):
+    def score_one(feat):
+        emb, (h, w) = P.embed(feat, neighbors)
+        emb = emb.squeeze(0)
+        mins = []
+        for i in range(0, emb.shape[0], 2048):
+            if a.fp16:
+                d = torch.cdist(emb[i:i + 2048].half(), mem_h)
+                mins.append(d.min(dim=1).values.float())
+            else:
+                d = torch.cdist(emb[i:i + 2048], mem)
+                mins.append(d.min(dim=1).values)
+        patch = torch.cat(mins).reshape(h, w)
+        if sigma > 0:
+            patch = P.gaussian_blur(patch, sigma=sigma)
+        if agg == "max":
+            sc = patch.max()
+        else:
+            k = max(1, int(np.ceil(patch.numel() * 0.05)))
+            sc = patch.flatten().topk(k).values.mean()
+        return float(sc.item())
+
+    def infer_batch(xs):
+        """xs: list[CHW] -> list[score]；一次前向，逐图算分。"""
         with torch.no_grad():
-            xb = x.unsqueeze(0).to(device)
+            xb = torch.stack(xs).to(device)
             if a.fp16:
                 with torch.autocast(device_type="cuda", dtype=torch.float16):
                     feat = model(xb)
                 feat = feat.float()
             else:
                 feat = model(xb)
-            emb, (h, w) = P.embed(feat, neighbors)
-            emb = emb.squeeze(0)
-            mins = []
-            for i in range(0, emb.shape[0], 2048):
-                if a.fp16:
-                    d = torch.cdist(emb[i:i + 2048].half(), mem_h)
-                    mins.append(d.min(dim=1).values.float())
-                else:
-                    d = torch.cdist(emb[i:i + 2048], mem)
-                    mins.append(d.min(dim=1).values)
-            patch = torch.cat(mins).reshape(h, w)
-            if sigma > 0:
-                patch = P.gaussian_blur(patch, sigma=sigma)
-            if agg == "max":
-                sc = patch.max()
-            else:
-                k = max(1, int(np.ceil(patch.numel() * 0.05)))
-                sc = patch.flatten().topk(k).values.mean()
+            outs = [score_one(feat[k:k + 1]) for k in range(feat.shape[0])]
             if device.type == "cuda":
                 torch.cuda.synchronize()
-        return float(sc.item())
+        return outs
 
-    def run_sequential(n, warmup):
+    def infer(x):
+        return infer_batch([x])[0]
+
+    def run_sequential(n, warmup, bs):
         for i in range(warmup):
             x, _, _ = load_cpu(paths[i % len(paths)])
             infer(x)
         rows = []
         t_start = time.perf_counter()
-        for i in range(n):
+        for start in range(0, n, bs):
+            k = min(bs, n - start)
             t0 = time.perf_counter()
-            x, t_read, t_cpu = load_cpu(paths[i % len(paths)])
+            xs, reads, cpus = [], [], []
+            for j in range(k):
+                x, t_read, t_cpu = load_cpu(paths[(start + j) % len(paths)])
+                xs.append(x); reads.append(t_read); cpus.append(t_cpu)
             t1 = time.perf_counter()
-            score = infer(x)
+            scores = infer_batch(xs)
             t2 = time.perf_counter()
-            rows.append({"path": paths[i % len(paths)], "read_ms": t_read * 1000,
-                         "decode_resize_ms": t_cpu * 1000, "gpu_ms": (t2 - t1) * 1000,
-                         "total_ms": (t2 - t0) * 1000, "score": score})
+            for j in range(k):
+                rows.append({"path": paths[(start + j) % len(paths)],
+                             "read_ms": reads[j] * 1000, "decode_resize_ms": cpus[j] * 1000,
+                             "gpu_ms": (t2 - t1) * 1000 / k,
+                             "total_ms": (t2 - t0) * 1000 / k, "score": scores[j]})
         wall = time.perf_counter() - t_start
         return rows, wall
 
-    def run_prefetch(n, warmup, workers, depth):
+    def run_prefetch(n, warmup, workers, depth, bs):
         for i in range(warmup):
             x, _, _ = load_cpu(paths[i % len(paths)])
             infer(x)
@@ -183,27 +198,39 @@ def main():
             item = q.get()
             if item is None:
                 continue
+            group = [item]
+            while len(group) < bs and done + len(group) < n:
+                try:
+                    nxt = q.get(timeout=0.02)
+                except queue.Empty:
+                    break
+                if nxt is None:
+                    continue
+                group.append(nxt)
             t0 = time.perf_counter()
-            score = infer(item["x"])
+            scores = infer_batch([g["x"] for g in group])
             t1 = time.perf_counter()
-            rows.append({"path": paths[item["idx"] % len(paths)], "read_ms": item["read_ms"],
-                         "decode_resize_ms": item["decode_resize_ms"],
-                         "gpu_ms": (t1 - t0) * 1000,
-                         "queue_ms": (t0 - item["t_ready"]) * 1000,
-                         "total_ms": (t1 - item["t_submit"]) * 1000,
-                         "score": score})
-            done += 1
+            for g, score in zip(group, scores):
+                rows.append({"path": paths[g["idx"] % len(paths)], "read_ms": g["read_ms"],
+                             "decode_resize_ms": g["decode_resize_ms"],
+                             "gpu_ms": (t1 - t0) * 1000 / len(group),
+                             "queue_ms": (t0 - g["t_ready"]) * 1000,
+                             "total_ms": (t1 - g["t_submit"]) * 1000,
+                             "score": score})
+                done += 1
         wall = time.perf_counter() - t_start
         stop.set()
         for th in threads:
             th.join(timeout=2)
         return rows, wall
 
+    bs = max(1, int(a.batch))
     result = {"category": a.category, "size": size, "mem_patches": int(mem.shape[0]),
               "n": a.n, "warmup": a.warmup, "workers": a.workers, "depth": a.depth,
+              "batch": bs, "fp16": bool(a.fp16),
               "device": str(device), "mode": "performance only; fixed bottle bank"}
 
-    seq_rows, seq_wall = run_sequential(a.n, a.warmup)
+    seq_rows, seq_wall = run_sequential(a.n, a.warmup, bs)
     seq_total = [r["total_ms"] for r in seq_rows]
     result["sequential"] = {
         "throughput_ips": round(a.n / seq_wall, 2),
@@ -215,7 +242,7 @@ def main():
     }
     print(f"sequential: {result['sequential']}")
 
-    pre_rows, pre_wall = run_prefetch(a.n, a.warmup, a.workers, a.depth)
+    pre_rows, pre_wall = run_prefetch(a.n, a.warmup, a.workers, a.depth, bs)
     pre_total = [r["total_ms"] for r in pre_rows]
     result["prefetch"] = {
         "throughput_ips": round(a.n / pre_wall, 2),

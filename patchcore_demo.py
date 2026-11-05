@@ -346,21 +346,9 @@ def expand_selected(base_maps, idx, pad='zero'):
     return torch.stack(outs)
 
 
-@torch.no_grad()
-def patch_scores(model, mem, x, device, neighbors=False, score_agg='max', blur_sigma=2.0,
-                 neighbor_pad='zero', fp16=False):
-    """单图打分。
-
-    fp16=True 时：前向走 autocast(fp16)，最近邻在 fp16 下算、距离再转回 fp32。
-    默认 False，与历史结果逐位一致（见 docs/e2e-ceiling.md 的精度闸门）。
-    """
-    xb = x.to(device)
-    if fp16:
-        with torch.autocast(device_type='cuda', dtype=torch.float16):
-            feat = model(xb)
-        feat = feat.float()
-    else:
-        feat = model(xb)
+def score_from_feat(feat, mem, neighbors=False, score_agg='max', blur_sigma=2.0,
+                    neighbor_pad='zero', fp16=False):
+    """由单图特征图算 patch 分数图与图像分数（最近邻 + 可选模糊 + 聚合）。"""
     emb, (h, w) = embed(feat, neighbors, neighbor_pad)
     emb = emb.squeeze(0)                                    # N, C
     # 分块算最近邻距离，避免显存炸
@@ -384,6 +372,43 @@ def patch_scores(model, mem, x, device, neighbors=False, score_agg='max', blur_s
     else:
         raise ValueError(f'unknown image score aggregation: {score_agg}')
     return patch, float(image_score.item())
+
+
+@torch.no_grad()
+def patch_scores(model, mem, x, device, neighbors=False, score_agg='max', blur_sigma=2.0,
+                 neighbor_pad='zero', fp16=False):
+    """单图打分（历史路径，数值与之前逐位一致）。
+
+    fp16=True 时：前向走 autocast(fp16)，最近邻在 fp16 下算、距离再转回 fp32。
+    默认 False，与历史结果逐位一致（见 docs/e2e-ceiling.md 的精度闸门）。
+    """
+    xb = x.to(device)
+    if fp16:
+        with torch.autocast(device_type='cuda', dtype=torch.float16):
+            feat = model(xb)
+        feat = feat.float()
+    else:
+        feat = model(xb)
+    return score_from_feat(feat, mem, neighbors, score_agg, blur_sigma, neighbor_pad, fp16)
+
+
+def patch_scores_batch(model, mem, xs, device, neighbors=False, score_agg='max', blur_sigma=2.0,
+                       neighbor_pad='zero', fp16=False):
+    """多图一次前向，再逐图算最近邻与聚合；返回 [(patch, score), ...]。
+
+    batch>1 只改变前向的并行度（eval 模式下 BN 逐样本等价），分数与单图路径一致。
+    这里用 no_grad：batch 下保留计算图会线性放大显存；单图路径保持原样不改。
+    """
+    xb = torch.cat([x for x in xs], dim=0).to(device)   # load_img 返回 [1,3,S,S]
+    with torch.no_grad():
+        if fp16:
+            with torch.autocast(device_type='cuda', dtype=torch.float16):
+                feat = model(xb)
+            feat = feat.float()
+        else:
+            feat = model(xb)
+        return [score_from_feat(feat[k:k + 1], mem, neighbors, score_agg, blur_sigma,
+                                neighbor_pad, fp16) for k in range(feat.shape[0])]
 
 
 def run_category(args, cat, device):
@@ -498,47 +523,57 @@ def run_category(args, cat, device):
     y, score, px_true, px_score = [], [], [], []
     dump_px, dump_mask, dump_path = [], [], []
     lat, top = [], []
-    for i, p in enumerate(test_imgs):
-        label = 0 if os.path.basename(os.path.dirname(p)) == 'good' else 1
-        x = perturb_img(load_img(p, args.size, args.preprocess, args.aspect_crop), args.perturb_brightness,
-                        args.perturb_noise, args.perturb_blur, args.seed + 100000 + i)
+    batch = max(1, int(getattr(args, 'batch', 1)))
+    for start in range(0, len(test_imgs), batch):
+        chunk = test_imgs[start:start + batch]
+        xs = [perturb_img(load_img(p, args.size, args.preprocess, args.aspect_crop),
+                          args.perturb_brightness, args.perturb_noise, args.perturb_blur,
+                          args.seed + 100000 + start + j) for j, p in enumerate(chunk)]
         if device.type == 'cuda':
             torch.cuda.synchronize()
         t = time.time()
-        patch, s = patch_scores(model, mem, x, device, args.neighbors, args.score_agg,
-                                args.blur_sigma, args.neighbor_pad, fp16=args.fp16)
+        if len(xs) == 1:
+            outs = [patch_scores(model, mem, xs[0], device, args.neighbors, args.score_agg,
+                                 args.blur_sigma, args.neighbor_pad, fp16=args.fp16)]
+        else:
+            outs = patch_scores_batch(model, mem, xs, device, args.neighbors, args.score_agg,
+                                      args.blur_sigma, args.neighbor_pad, fp16=args.fp16)
         if device.type == 'cuda':
             torch.cuda.synchronize()
-        lat.append((time.time() - t) * 1000)
-        y.append(label); score.append(s)
-        top.append((s, p, patch.detach().cpu()))
-        # 像素级标注：先把掩码统一取出来，缺掩码时用全零（既包含良品，也容忍个别缺文件的缺陷图），
-        # 这样 px_true/px_score 与 --dump-pixel 的下标永远对得上。
-        hw = patch.shape[-1]
-        mask = None
-        if label == 1:
-            rel = os.path.relpath(p, test_dir)
-            m = os.path.join(gt_dir, os.path.splitext(rel)[0] + '_mask.png')
-            # VisA's official 1-class preparation stores masks as
-            # ground_truth/bad/<image-stem>.png (without the MVTec suffix).
-            if not os.path.exists(m):
-                m = os.path.join(gt_dir, os.path.dirname(rel),
-                                 os.path.splitext(os.path.basename(rel))[0] + '.png')
-            if os.path.exists(m):
-                if args.aspect_crop > 0 or args.preprocess != 'stretch':
-                    # 几何变换必须和图像一致，否则 pixel AUROC 的绝对值不可用
-                    mimg = load_mask(m, args.size, args.preprocess, args.aspect_crop)
-                    mask = np.asarray(mimg.resize((hw, hw), Image.NEAREST)) > 128
-                else:
-                    mask = np.asarray(Image.open(m).convert('L').resize((hw, hw), Image.NEAREST)) > 128
-        if mask is None:
-            mask = np.zeros((hw, hw), bool)
-        px_true.append(mask.reshape(-1))
-        px_score.append(patch.detach().cpu().numpy().reshape(-1))
-        if args.dump_pixel:
-            dump_px.append(patch.detach().cpu().numpy().astype(np.float16))
-            dump_mask.append(mask)
-            dump_path.append(os.path.relpath(p, test_dir))
+        per_img = (time.time() - t) * 1000 / len(xs)          # batch>1 时按张均摊
+        for j, (p, (patch, s)) in enumerate(zip(chunk, outs)):
+            i = start + j
+            label = 0 if os.path.basename(os.path.dirname(p)) == 'good' else 1
+            lat.append(per_img)
+            y.append(label); score.append(s)
+            top.append((s, p, patch.detach().cpu()))
+            # 像素级标注：先把掩码统一取出来，缺掩码时用全零（既包含良品，也容忍个别缺文件的缺陷图），
+            # 这样 px_true/px_score 与 --dump-pixel 的下标永远对得上。
+            hw = patch.shape[-1]
+            mask = None
+            if label == 1:
+                rel = os.path.relpath(p, test_dir)
+                m = os.path.join(gt_dir, os.path.splitext(rel)[0] + '_mask.png')
+                # VisA's official 1-class preparation stores masks as
+                # ground_truth/bad/<image-stem>.png (without the MVTec suffix).
+                if not os.path.exists(m):
+                    m = os.path.join(gt_dir, os.path.dirname(rel),
+                                     os.path.splitext(os.path.basename(rel))[0] + '.png')
+                if os.path.exists(m):
+                    if args.aspect_crop > 0 or args.preprocess != 'stretch':
+                        # 几何变换必须和图像一致，否则 pixel AUROC 的绝对值不可用
+                        mimg = load_mask(m, args.size, args.preprocess, args.aspect_crop)
+                        mask = np.asarray(mimg.resize((hw, hw), Image.NEAREST)) > 128
+                    else:
+                        mask = np.asarray(Image.open(m).convert('L').resize((hw, hw), Image.NEAREST)) > 128
+            if mask is None:
+                mask = np.zeros((hw, hw), bool)
+            px_true.append(mask.reshape(-1))
+            px_score.append(patch.detach().cpu().numpy().reshape(-1))
+            if args.dump_pixel:
+                dump_px.append(patch.detach().cpu().numpy().astype(np.float16))
+                dump_mask.append(mask)
+                dump_path.append(os.path.relpath(p, test_dir))
 
     img_auc = auc(y, score)
     px_auc = auc(np.concatenate(px_true), np.concatenate(px_score)) if px_true else float('nan')
@@ -597,6 +632,7 @@ def run_category(args, cat, device):
                projection_dim=args.projection_dim if args.coreset_method == 'projected-greedy' else None,
                starting_points=args.starting_points if args.coreset_method == 'projected-greedy' else None,
                score_agg=args.score_agg, blur_sigma=args.blur_sigma, fp16=int(bool(args.fp16)),
+               batch=int(getattr(args, 'batch', 1)),
                train_limit=args.train_limit, train_seed=args.seed + 1,
                perturb_brightness=args.perturb_brightness,
                perturb_noise=args.perturb_noise, perturb_blur=args.perturb_blur,
@@ -663,6 +699,8 @@ def main():
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--fp16', action='store_true',
                     help='前向 autocast(fp16) + 最近邻 fp16 计算；默认关（精度闸门见 docs/e2e-ceiling.md）')
+    ap.add_argument('--batch', type=int, default=1,
+                    help='测试集批推理大小（默认 1=逐张，与历史结果逐位一致；>1 只改前向并行度）')
     ap.add_argument('--split-seed', type=int, default=None,
                     help='固定 calibration/train 划分 seed；省略时沿用 --seed')
     ap.add_argument('--out', default='experiment_data/01_mvtec_gpu/runs/default')
