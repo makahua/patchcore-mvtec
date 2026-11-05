@@ -76,11 +76,16 @@ def _need_torch():
 # ---------------------------------------------------------------- 打分的公共部分
 # 注意：这里不能用 @torch.no_grad() 装饰器 —— torch 是延迟导入的，模块加载时还是 None。
 # 改成在函数体内 with torch.no_grad()，效果一样。
-def image_patch_scores(model, bank, path, size, device, neighbors=False, score_agg='max'):
-    """单张图 → (patch 分数图 hxw, 图像分数)。"""
+def image_patch_scores(model, bank, path, size, device, neighbors=False, score_agg='max',
+                       preprocess='stretch', aspect_crop=0.0, blur_sigma=2.0, neighbor_pad='zero'):
+    """单张图 → (patch 分数图 hxw, 图像分数)。
+
+    预处理/聚合必须跟建库时一致，否则分数不可比 —— 这些都从记忆库元数据里读出来传进来。
+    """
     with torch.no_grad():
-        x = _pcdemo.load_img(path, size)
-        patch, score = _pcdemo.patch_scores(model, bank, x, device, neighbors, score_agg)
+        x = _pcdemo.load_img(path, size, preprocess, aspect_crop)
+        patch, score = _pcdemo.patch_scores(model, bank, x, device, neighbors, score_agg,
+                                            blur_sigma, neighbor_pad)
         return patch.cpu().numpy(), score
 
 
@@ -176,6 +181,14 @@ def thr_ok_from(cal_scores, fpr, conformal):
     return float(np.percentile(cal_scores, 100 * (1 - fpr)))
 
 
+def _build_model(a, meta):
+    """按记忆库记录的层组合建骨干 —— 否则 1+2 的库会喂给 2+3 的模型，维度直接对不上。"""
+    return _pcdemo.Features(weights_path=_pick_weights(a, meta),
+                            imagenet_norm=bool(meta.get('imagenet_norm', False)),
+                            layers=meta.get('layers', '2+3')).to(torch.device(
+                                'cuda' if torch.cuda.is_available() else 'cpu')).eval()
+
+
 def _pick_weights(a, meta):
     """优先命令行给的权重，其次复用建库时记录的那份（不然会去联网下载 torchvision 权重）。"""
     for w in (a.weights, meta.get('weights')):
@@ -184,16 +197,98 @@ def _pick_weights(a, meta):
     return a.weights
 
 
+# 各层组合的特征维度（与 patchcore_demo.Features 一致）
+LAYER_DIMS = {'2+3': 1536, '1+2': 768, '1+2+3': 1792}
+
+
+def _npz_scalar(z, key, default=None):
+    if key not in z.files:
+        return default
+    v = z[key]
+    if getattr(v, 'shape', None) == ():
+        return v.item()
+    return v
+
+
+def _int_like(v, default=0):
+    """`pool` 存的是 '(235200, 1536)' 这样的形状字符串，取第一个数字即可。"""
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        digits = ''.join(ch if ch.isdigit() else ' ' for ch in str(v)).split()
+        return int(digits[0]) if digits else default
+
+
+def _meta_from_npz(z, path='<bank>'):
+    """把两种记忆库统一成同一份 meta。
+
+    - classify.py build 写的：`bank` + `meta`（JSON 字符串），可能没有 layers 字段 → 视为 2+3。
+    - patchcore_demo.py --save-bank 写的：`mem` + 一堆标量（layers/feat_dim/grid/thr/...）。
+    """
+    if 'meta' in z.files:
+        meta = json.loads(str(z['meta']))
+        meta.setdefault('layers', '2+3')
+        meta.setdefault('feat_dim', int(meta.get('dim') or LAYER_DIMS.get(meta['layers'], 1536)))
+        meta.setdefault('preprocess', 'stretch')
+        meta.setdefault('aspect_crop', 0.0)
+        meta.setdefault('blur_sigma', 2.0)
+        meta.setdefault('neighbor_pad', 'zero')
+        meta.setdefault('imagenet_norm', False)
+        meta.setdefault('score_agg', 'max')
+        meta['bank_format'] = 'classify-build'
+        meta.setdefault('category', os.path.splitext(os.path.basename(path))[0])
+        return meta
+
+    if 'mem' not in z.files:
+        raise SystemExit(f'无法识别的记忆库：{path}（既没有 meta，也没有 mem）')
+
+    layers = str(_npz_scalar(z, 'layers', '2+3'))
+    feat_dim = int(_npz_scalar(z, 'feat_dim', LAYER_DIMS.get(layers, 1536)))
+    thr = float(_npz_scalar(z, 'thr', float('nan')))
+    meta = dict(
+        category=os.path.splitext(os.path.basename(path))[0],
+        layers=layers, feat_dim=feat_dim, dim=int(feat_dim),
+        grid=int(_npz_scalar(z, 'grid', 0) or 0),
+        size=int(_npz_scalar(z, 'size', 320) or 320),
+        preprocess=str(_npz_scalar(z, 'preprocess', 'stretch')),
+        aspect_crop=float(_npz_scalar(z, 'aspect_crop', 0.0) or 0.0),
+        neighbors=bool(_npz_scalar(z, 'neighbors', False)),
+        neighbor_pad=str(_npz_scalar(z, 'neighbor_pad', 'zero')),
+        score_agg=str(_npz_scalar(z, 'score_agg', 'max')),
+        blur_sigma=float(_npz_scalar(z, 'blur_sigma', 2.0) or 0.0),
+        imagenet_norm=False,
+        thr_ok=thr,
+        thr_ng=thr * 1.2,
+        thr_pct=float(_npz_scalar(z, 'thr_pct', 99.5)) if 'thr_pct' in z.files else None,
+        weights=str(_npz_scalar(z, 'weights', '') or ''),
+        n_used=_int_like(_npz_scalar(z, 'pool', 0), 0),
+        greedy=int(z['mem'].shape[0]),
+        bank_format='save-bank',
+    )
+    return meta
+
+
+def expected_dim(meta):
+    """按层组合与是否开邻域推出的记忆库维度。"""
+    base = int(meta.get('feat_dim') or LAYER_DIMS.get(meta.get('layers', '2+3'), 1536))
+    return base * (9 if meta.get('neighbors') else 1)
+
+
 def load_bank(path, device):
+    _need_torch()
     z = np.load(path, allow_pickle=True)
-    bank = torch.from_numpy(z['bank']).float().to(device)
-    meta = json.loads(str(z['meta']))
+    meta = _meta_from_npz(z, path)
+    key = 'bank' if 'bank' in z.files else 'mem'
+    bank = torch.from_numpy(z[key]).float().to(device)
     check_bank_dims(bank, meta, path)
     return bank, meta
 
 
-# layer2(512) + layer3(1024) = 1536；开 9 邻域再 ×9。
-_BASE_DIM = 1536
+def describe_bank(meta, path=''):
+    """一行说明这份库是怎么建的 —— 推理前先自己把口径读出来，别靠记忆。"""
+    return (f'[bank] {path} 格式 {meta.get("bank_format")} 层组合 {meta.get("layers")} '
+            f'{expected_dim(meta)} 维 网格 {meta.get("grid")} 预处理 {meta.get("preprocess")} '
+            f'聚合 {meta.get("score_agg")} σ={meta.get("blur_sigma")} thr_ok={meta.get("thr_ok"):.2f}')
 
 
 def check_bank_dims(bank, meta, path='<bank>'):
@@ -203,12 +298,12 @@ def check_bank_dims(bank, meta, path='<bank>'):
     但 meta 里却写了 neighbors=True，于是查询侧算出 13824 维，
     报错信息是 "cdist 维度不匹配"，跟真正的原因（build 参数没生效）隔了很远。
     """
-    want = _BASE_DIM * (9 if meta.get('neighbors') else 1)
+    want = expected_dim(meta)
     got = int(bank.shape[1])
     if got != want:
         raise SystemExit(
-            f'记忆库维度不自洽：{path} 里是 {got} 维，但 meta 记录 neighbors={bool(meta.get("neighbors"))}，'
-            f'按此应为 {want} 维。\n'
+            f'记忆库维度不自洽：{path} 里是 {got} 维，但 meta 记录 layers={meta.get("layers")}、'
+            f'neighbors={bool(meta.get("neighbors"))}，按此应为 {want} 维。\n'
             f'这通常意味着建库时的 --neighbors 与实际提取特征时不一致，请重新 build。'
         )
 
@@ -255,7 +350,9 @@ def cmd_build(a):
 
     os.makedirs(a.out, exist_ok=True)
     meta = dict(category=a.category, size=a.size, neighbors=bool(a.neighbors), greedy=int(bank.shape[0]),
-                score_agg=a.score_agg,
+                score_agg=a.score_agg, layers=model.layers,
+                feat_dim=int(LAYER_DIMS.get(model.layers, 1536)),
+                preprocess='stretch', aspect_crop=0.0, blur_sigma=2.0, neighbor_pad='zero',
                 calib_ratio=a.calib_ratio, fpr=a.fpr, ng_ratio=a.ng_ratio, seed=a.seed,
                 imagenet_norm=bool(a.imagenet_norm), dim=int(bank.shape[1]),
                 thr_ok=thr_ok, thr_ng=thr_ng, n_used=len(used), n_calib=len(calib),
@@ -272,8 +369,9 @@ def cmd_infer(a):
     _need_torch()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     bank, meta = load_bank(a.bank, device)
-    model = _pcdemo.Features(weights_path=_pick_weights(a, meta),
-                        imagenet_norm=a.imagenet_norm).to(device).eval()
+    print(describe_bank(meta, os.path.basename(a.bank)))
+    model = _build_model(a, meta)
+    device = next(model.parameters()).device
 
     paths = [a.image] if os.path.isfile(a.image) else _pcdemo.list_images(a.image)
     print(f'{"图":<44}{"分数":>9}  {"判定":<7}阈值 {meta["thr_ok"]:.2f} / {meta["thr_ng"]:.2f}')
@@ -281,7 +379,9 @@ def cmd_infer(a):
     rows = []
     for p in paths:
         patch, score = image_patch_scores(model, bank, p, meta['size'], device,
-                                          meta['neighbors'], meta.get('score_agg', 'max'))
+                                          meta['neighbors'], meta.get('score_agg', 'max'),
+                                          meta.get('preprocess', 'stretch'), meta.get('aspect_crop', 0.0),
+                                          meta.get('blur_sigma', 2.0), meta.get('neighbor_pad', 'zero'))
         v = verdict(score, meta['thr_ok'], meta['thr_ng'])
         print(f'{os.path.relpath(p):<44}{score:9.2f}  {v}')
         rows.append(dict(image=os.path.relpath(p), score=round(score, 4), verdict=v))
@@ -309,8 +409,9 @@ def cmd_eval(a):
             f"记忆库类别不匹配：bank 属于 {meta['category']}，评测类别是 {a.category}。"
             f"请使用对应类别的 bank，或将 --category 改为 {meta['category']}。"
         )
-    model = _pcdemo.Features(weights_path=_pick_weights(a, meta),
-                        imagenet_norm=a.imagenet_norm).to(device).eval()
+    print(describe_bank(meta, os.path.basename(a.bank)))
+    model = _build_model(a, meta)
+    device = next(model.parameters()).device
     test_dir = os.path.join(a.data, a.category, 'test')
     if not os.path.isdir(test_dir):
         raise SystemExit(f'找不到测试集：{test_dir}')
