@@ -21,6 +21,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE_FILES = ("patchcore_demo.py", "tools/run_experiment.py")
 
 
 def sha256(path: Path) -> str | None:
@@ -159,13 +160,15 @@ def package_artifacts(run_dir: Path, native: Path, command: list[str], started: 
         "native_results": str((native / "results.json").relative_to(ROOT)),
         "manifests": sorted(str(p.relative_to(ROOT)) for p in (native / "manifests").glob("*.json")),
         "note": "MVTec test scores are development results; this wrapper does not make them an independent holdout.",
+        "source_sha256": {name: sha256(ROOT / name) for name in SOURCE_FILES},
+        "banks": sorted(str(p.relative_to(ROOT)) for p in (run_dir / "banks").glob("*.npz")),
     }
     (run_dir / "config.json").write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
 
     timing = {
         "duration_seconds": config["duration_seconds"],
         "per_category": [{k: row.get(k) for k in
-                          ("category", "latency_ms", "latency_p95_ms", "build_seconds", "peak_gpu_mb")}
+                          ("category", "latency_ms", "latency_p95_ms", "build_seconds", "peak_gpu_mb", "peak_cpu_mb", "bank_file")}
                          for row in rows],
         "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing.",
     }
@@ -198,6 +201,8 @@ def main() -> int:
         return 0
     if not command:
         parser.error("provide patchcore_demo.py arguments after --")
+    if "--save-bank" not in command:
+        command = command + ["--save-bank", str(run_dir / "banks")]
 
     if run_dir.exists() and any(run_dir.iterdir()):
         parser.error(f"refusing to overwrite non-empty run directory: {run_dir}")

@@ -23,6 +23,34 @@ MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
 
+def peak_ws_mb():
+    """本进程峰值工作集（MB）。Windows 用 K32GetProcessMemoryInfo；其它平台返回 None。"""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+            _fields_ = [('cb', wintypes.DWORD), ('PageFaultCount', wintypes.DWORD),
+                        ('PeakWorkingSetSize', ctypes.c_size_t), ('WorkingSetSize', ctypes.c_size_t),
+                        ('QuotaPeakPagedPoolUsage', ctypes.c_size_t), ('QuotaPagedPoolUsage', ctypes.c_size_t),
+                        ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
+                        ('QuotaNonPagedPoolUsage', ctypes.c_size_t), ('PagefileUsage', ctypes.c_size_t),
+                        ('PeakPagefileUsage', ctypes.c_size_t)]
+
+        k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+        k32.GetCurrentProcess.restype = wintypes.HANDLE
+        fn = k32.K32GetProcessMemoryInfo
+        fn.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESS_MEMORY_COUNTERS), wintypes.DWORD]
+        fn.restype = wintypes.BOOL
+        pmc = PROCESS_MEMORY_COUNTERS()
+        pmc.cb = ctypes.sizeof(PROCESS_MEMORY_COUNTERS)
+        if not fn(k32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb):
+            return None
+        return round(pmc.PeakWorkingSetSize / 1024 ** 2, 1)
+    except Exception:
+        return None
+
+
 def rel_path(p, data_root, cat):
     """把图片绝对路径转成 <类别>/<train|test>/... 的相对形式。
 
@@ -618,6 +646,21 @@ def run_category(args, cat, device):
                              for p, l, s in zip(test_imgs, y, score)]),
                   f, ensure_ascii=False)
 
+    if args.save_bank:
+        os.makedirs(args.save_bank, exist_ok=True)
+        bank_path = os.path.join(args.save_bank, f'{cat}.npz')
+        np.savez_compressed(
+            bank_path, mem=mem.detach().float().cpu().numpy(),
+            layers=np.array(args.layers), feat_dim=np.int32(mem.shape[1]),
+            size=np.int32(args.size), preprocess=np.array(args.preprocess),
+            aspect_crop=np.float32(args.aspect_crop), neighbors=np.int8(int(bool(args.neighbors))),
+            neighbor_pad=np.array(args.neighbor_pad), score_agg=np.array(args.score_agg),
+            blur_sigma=np.float32(args.blur_sigma), thr=np.float32(thr),
+            thr_pct=np.float32(args.thr_pct),
+            weights=np.array(os.path.basename(args.weights) if args.weights else 'IMAGENET1K_V1'),
+            grid=np.array(hw, dtype=np.int32), pool=np.array(bank_desc))
+        print(f'[bank] 记忆库 {tuple(mem.shape)} → {bank_path}')
+
     res = dict(category=cat, n_train=len(train_imgs), n_calib=len(calib_imgs), n_test=len(test_imgs),
                # ---- 配置列：没有这些，几份 results*/ 目录事后无法区分 ----
                size=args.size, layers=args.layers, neighbors=int(bool(args.neighbors)),
@@ -646,7 +689,10 @@ def run_category(args, cat, device):
                recall_at_thr=round(rec, 4), false_positive_rate=round(fpr, 4),
                latency_ms=round(float(np.mean(lat)), 2),
                latency_p95_ms=round(float(np.percentile(lat, 95)), 2),
-               build_seconds=round(build_s, 1))
+               build_seconds=round(build_s, 1),
+               peak_cpu_mb=peak_ws_mb(),
+               bank_file=(os.path.join(os.path.basename(args.save_bank), f'{cat}.npz')
+                          if args.save_bank else ''))
     if device.type == 'cuda':
         res['peak_gpu_mb'] = round(torch.cuda.max_memory_allocated() / 1024 ** 2, 1)
     print('   ', json.dumps(res, ensure_ascii=False))
@@ -712,6 +758,8 @@ def main():
     ap.add_argument('--gpu', type=int, default=0, help='指定 GPU 序号，默认 0')
     ap.add_argument('--dump-pixel', default='',
                     help='把逐图像素分数图 + GT 掩码存成 <目录>/<类别>.npz，供 tools/pro_aupro.py 算 PRO/AUPRO')
+    ap.add_argument('--save-bank', default='',
+                    help='把记忆库与元数据存成 <dir>/<cat>.npz，供扰动/聚合实验复用')
     args = ap.parse_args()
 
     if args.split_seed is None:
