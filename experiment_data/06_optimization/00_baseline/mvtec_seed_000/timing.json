@@ -1,0 +1,111 @@
+{
+  "duration_seconds": 2485.114,
+  "per_category": [
+    {
+      "category": "bottle",
+      "latency_ms": 19.89,
+      "latency_p95_ms": 20.31,
+      "build_seconds": 123.1,
+      "peak_gpu_mb": 188.7
+    },
+    {
+      "category": "cable",
+      "latency_ms": 24.83,
+      "latency_p95_ms": 26.04,
+      "build_seconds": 134.4,
+      "peak_gpu_mb": 189.5
+    },
+    {
+      "category": "capsule",
+      "latency_ms": 30.04,
+      "latency_p95_ms": 29.14,
+      "build_seconds": 124.8,
+      "peak_gpu_mb": 189.5
+    },
+    {
+      "category": "carpet",
+      "latency_ms": 25.19,
+      "latency_p95_ms": 27.43,
+      "build_seconds": 171.1,
+      "peak_gpu_mb": 189.5
+    },
+    {
+      "category": "grid",
+      "latency_ms": 21.48,
+      "latency_p95_ms": 27.96,
+      "build_seconds": 154.9,
+      "peak_gpu_mb": 189.5
+    },
+    {
+      "category": "hazelnut",
+      "latency_ms": 23.33,
+      "latency_p95_ms": 25.5,
+      "build_seconds": 240.9,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "leather",
+      "latency_ms": 24.23,
+      "latency_p95_ms": 26.36,
+      "build_seconds": 145.6,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "metal_nut",
+      "latency_ms": 19.39,
+      "latency_p95_ms": 20.66,
+      "build_seconds": 124.0,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "pill",
+      "latency_ms": 20.72,
+      "latency_p95_ms": 22.68,
+      "build_seconds": 157.9,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "screw",
+      "latency_ms": 19.42,
+      "latency_p95_ms": 20.37,
+      "build_seconds": 190.2,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "tile",
+      "latency_ms": 24.76,
+      "latency_p95_ms": 39.26,
+      "build_seconds": 135.3,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "toothbrush",
+      "latency_ms": 22.9,
+      "latency_p95_ms": 24.76,
+      "build_seconds": 33.0,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "transistor",
+      "latency_ms": 25.04,
+      "latency_p95_ms": 26.58,
+      "build_seconds": 124.8,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "wood",
+      "latency_ms": 25.11,
+      "latency_p95_ms": 26.5,
+      "build_seconds": 148.2,
+      "peak_gpu_mb": 190.5
+    },
+    {
+      "category": "zipper",
+      "latency_ms": 19.5,
+      "latency_p95_ms": 20.3,
+      "build_seconds": 141.1,
+      "peak_gpu_mb": 190.5
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

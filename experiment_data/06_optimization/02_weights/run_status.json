@@ -1,0 +1,34 @@
+[
+  {
+    "run": "screw_timm_seed_000",
+    "rc": 0,
+    "seconds": 239.5,
+    "missing": [],
+    "img_auroc": null,
+    "px_auroc": null
+  },
+  {
+    "run": "screw_tv_seed_000",
+    "rc": 0,
+    "seconds": 234.2,
+    "missing": [],
+    "img_auroc": null,
+    "px_auroc": null
+  },
+  {
+    "run": "bottle_timm_seed_000",
+    "rc": 0,
+    "seconds": 157.6,
+    "missing": [],
+    "img_auroc": null,
+    "px_auroc": null
+  },
+  {
+    "run": "bottle_tv_seed_000",
+    "rc": 0,
+    "seconds": 156.8,
+    "missing": [],
+    "img_auroc": null,
+    "px_auroc": null
+  }
+]

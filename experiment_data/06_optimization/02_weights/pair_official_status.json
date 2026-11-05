@@ -1,0 +1,46 @@
+[
+  {
+    "run": "screw_timm_seed_000",
+    "category": "screw",
+    "weights": "torch_cache/wide_resnet50_2_timm.pth",
+    "run_dir": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\02_weights\\pair_official\\screw_timm_seed_000",
+    "rc": 0,
+    "wall_s": 224.6,
+    "aupro_rc": 0,
+    "aupro_wall_s": 8.1,
+    "status": "ok"
+  },
+  {
+    "run": "screw_tv_seed_000",
+    "category": "screw",
+    "weights": "torch_cache/wide_resnet50_2_v1.pth",
+    "run_dir": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\02_weights\\pair_official\\screw_tv_seed_000",
+    "rc": 0,
+    "wall_s": 208.5,
+    "aupro_rc": 0,
+    "aupro_wall_s": 8.0,
+    "status": "ok"
+  },
+  {
+    "run": "bottle_timm_seed_000",
+    "category": "bottle",
+    "weights": "torch_cache/wide_resnet50_2_timm.pth",
+    "run_dir": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\02_weights\\pair_official\\bottle_timm_seed_000",
+    "rc": 0,
+    "wall_s": 146.8,
+    "aupro_rc": 0,
+    "aupro_wall_s": 4.0,
+    "status": "ok"
+  },
+  {
+    "run": "bottle_tv_seed_000",
+    "category": "bottle",
+    "weights": "torch_cache/wide_resnet50_2_v1.pth",
+    "run_dir": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\02_weights\\pair_official\\bottle_tv_seed_000",
+    "rc": 0,
+    "wall_s": 147.6,
+    "aupro_rc": 0,
+    "aupro_wall_s": 3.7,
+    "status": "ok"
+  }
+]

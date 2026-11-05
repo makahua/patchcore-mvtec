@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.932081352123109,
+  "aupru_std": 0.0,
+  "aupru_min": 0.932081352123109,
+  "aupru_max": 0.932081352123109,
+  "worst": [
+    {
+      "category": "bottle",
+      "aupru": 0.932081352123109,
+      "aupru_01": 0.8041277825895143,
+      "pro_at_005": 0.8736954355070905,
+      "pro_at_01": 0.9706790089210245,
+      "pixel_auroc": 0.9798901158279957,
+      "n_regions": 70,
+      "n_images": 83
+    }
+  ],
+  "pooled": {
+    "aupru": 0.932081352123109,
+    "aupru_01": 0.8041277825895143,
+    "pro_at_005": 0.8736954355070905,
+    "pro_at_01": 0.9706790089210245,
+    "n_regions": 70,
+    "n_images": 83
+  },
+  "per_class": [
+    {
+      "category": "bottle",
+      "aupru": 0.932081352123109,
+      "aupru_01": 0.8041277825895143,
+      "pro_at_005": 0.8736954355070905,
+      "pro_at_01": 0.9706790089210245,
+      "pixel_auroc": 0.9798901158279957,
+      "n_regions": 70,
+      "n_images": 83
+    }
+  ],
+  "images": [
+    {
+      "category": "bottle",
+      "images": 83,
+      "missing_masks": 0,
+      "total": 83,
+      "defect_images": 63
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\02_weights\\pair_official\\bottle_tv_seed_000\\pixel_dumps"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "tool": "tools/threshold_ci.py",
+  "command": "python tools/threshold_ci.py --scores experiment_data/06_optimization/00_baseline/mvtec_seed_000/native/scores --out experiment_data/06_optimization/06_threshold/bootstrap_seed_000 --fpr 0.005 --repeats 1000 --seed 2026",
+  "scores_dir": "experiment_data/06_optimization/00_baseline/mvtec_seed_000/native/scores",
+  "repeats": 1000,
+  "seed": 2026
+}

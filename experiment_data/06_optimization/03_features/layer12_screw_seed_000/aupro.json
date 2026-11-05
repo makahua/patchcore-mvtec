@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9561561133581766,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9561561133581766,
+  "aupru_max": 0.9561561133581766,
+  "worst": [
+    {
+      "category": "screw",
+      "aupru": 0.9561561133581766,
+      "aupru_01": 0.9061671931159555,
+      "pro_at_005": 0.9332320298866041,
+      "pro_at_01": 0.9688936471557223,
+      "pixel_auroc": 0.9910342544649975,
+      "n_regions": 140,
+      "n_images": 160
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9561561133581766,
+    "aupru_01": 0.9061671931159555,
+    "pro_at_005": 0.9332320298866041,
+    "pro_at_01": 0.9688936471557223,
+    "n_regions": 140,
+    "n_images": 160
+  },
+  "per_class": [
+    {
+      "category": "screw",
+      "aupru": 0.9561561133581766,
+      "aupru_01": 0.9061671931159555,
+      "pro_at_005": 0.9332320298866041,
+      "pro_at_01": 0.9688936471557223,
+      "pixel_auroc": 0.9910342544649975,
+      "n_regions": 140,
+      "n_images": 160
+    }
+  ],
+  "images": [
+    {
+      "category": "screw",
+      "images": 160,
+      "missing_masks": 0,
+      "total": 160,
+      "defect_images": 119
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data\\06_optimization\\03_features\\layer12_screw_seed_000\\pixel_dumps"
+  }
+}

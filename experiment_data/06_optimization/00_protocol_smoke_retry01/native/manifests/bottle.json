@@ -1,0 +1,18 @@
+{
+  "category": "bottle",
+  "seed": 0,
+  "split_seed": 42,
+  "train_seed": 1,
+  "calib_ratio": 0.0,
+  "train_limit": 0,
+  "train": [
+    "bottle/train/good/000.png"
+  ],
+  "calibration": [],
+  "test": [
+    "bottle/test/broken_large/000.png",
+    "bottle/test/broken_small/000.png",
+    "bottle/test/contamination/000.png",
+    "bottle/test/good/000.png"
+  ]
+}

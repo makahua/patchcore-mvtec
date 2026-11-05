@@ -1,0 +1,5 @@
+{
+  "duration_seconds": 12.416,
+  "per_category": [],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

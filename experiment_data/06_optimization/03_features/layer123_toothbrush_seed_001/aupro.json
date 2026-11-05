@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9312894030405022,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9312894030405022,
+  "aupru_max": 0.9312894030405022,
+  "worst": [
+    {
+      "category": "toothbrush",
+      "aupru": 0.9312894030405022,
+      "aupru_01": 0.7989350104814411,
+      "pro_at_005": 0.9472333852883301,
+      "pro_at_01": 0.9886451189569164,
+      "pixel_auroc": 0.9913047427854536,
+      "n_regions": 79,
+      "n_images": 42
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9312894030405022,
+    "aupru_01": 0.7989350104814411,
+    "pro_at_005": 0.9472333852883301,
+    "pro_at_01": 0.9886451189569164,
+    "n_regions": 79,
+    "n_images": 42
+  },
+  "per_class": [
+    {
+      "category": "toothbrush",
+      "aupru": 0.9312894030405022,
+      "aupru_01": 0.7989350104814411,
+      "pro_at_005": 0.9472333852883301,
+      "pro_at_01": 0.9886451189569164,
+      "pixel_auroc": 0.9913047427854536,
+      "n_regions": 79,
+      "n_images": 42
+    }
+  ],
+  "images": [
+    {
+      "category": "toothbrush",
+      "images": 42,
+      "missing_masks": 0,
+      "total": 42,
+      "defect_images": 30
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\03_features\\layer123_toothbrush_seed_001\\pixel_dumps"
+  }
+}

@@ -1,0 +1,6 @@
+﻿category,split,path,label,score
+bottle,calibration,,0,45.23101043701172
+bottle,test,bottle/test/broken_large/000.png,1,44.376094818115234
+bottle,test,bottle/test/broken_small/000.png,1,45.082244873046875
+bottle,test,bottle/test/contamination/000.png,1,44.19155502319336
+bottle,test,bottle/test/good/000.png,0,44.03545379638672

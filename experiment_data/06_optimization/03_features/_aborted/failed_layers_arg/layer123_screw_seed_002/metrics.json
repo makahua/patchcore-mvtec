@@ -1,0 +1,20 @@
+{
+  "status": "failed",
+  "return_code": 2,
+  "aggregate": {
+    "macro": {
+      "img_auroc": null,
+      "pixel_auroc": null,
+      "recall_at_thr": null,
+      "false_positive_rate": null,
+      "latency_ms": null,
+      "latency_p95_ms": null,
+      "build_seconds": null,
+      "peak_gpu_mb": null
+    },
+    "pooled_image_auroc": null,
+    "pooled_test_images": 0,
+    "dataset_role": "development; MVTec test has been repeatedly inspected"
+  },
+  "categories": []
+}

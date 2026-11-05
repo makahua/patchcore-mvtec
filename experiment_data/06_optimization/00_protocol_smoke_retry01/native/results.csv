@@ -1,0 +1,2 @@
+﻿category,n_train,n_calib,n_test,size,neighbors,neighbor_coreset,neighbor_pad,preprocess,aspect_crop,imagenet_norm,coreset,coreset_k,coreset_ratio,score_agg,blur_sigma,train_limit,train_seed,perturb_brightness,perturb_noise,perturb_blur,perturb_calibration,calib_ratio,thr_pct,seed,split_seed,weights,mem_patches,img_auroc,pixel_auroc,threshold,recall_at_thr,false_positive_rate,latency_ms,latency_p95_ms,build_seconds
+bottle,1,0,4,320,0,,,stretch,0.0,0,random,,0.1,max,2.0,0,1,1.0,0.0,0.0,0,0.0,99.0,0,42,IMAGENET1K_V1,160,1.0,0.3642,45.231,0.0,0.0,170.61,176.2,0.2

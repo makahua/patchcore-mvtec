@@ -1,0 +1,28 @@
+[
+  {
+    "run": "screw_repro_seed_000",
+    "rc": 0,
+    "wall_s": 234.9,
+    "img_auroc": 0.924,
+    "pixel_auroc": 0.9823,
+    "threshold": 38.18,
+    "recall_at_thr": 0.6723,
+    "false_positive_rate": 0.0244,
+    "latency_ms": 20.74,
+    "build_seconds": 208.7,
+    "peak_gpu_mb": 188.0
+  },
+  {
+    "run": "screw_repro_seed_001",
+    "rc": 0,
+    "wall_s": 231.8,
+    "img_auroc": 0.924,
+    "pixel_auroc": 0.9823,
+    "threshold": 38.18,
+    "recall_at_thr": 0.6723,
+    "false_positive_rate": 0.0244,
+    "latency_ms": 20.75,
+    "build_seconds": 206.7,
+    "peak_gpu_mb": 188.0
+  }
+]

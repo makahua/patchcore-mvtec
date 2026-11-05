@@ -1,0 +1,43 @@
+{
+  "command": [
+    "E:\\面试项目文件夹\\patchcore-mvtec\\.venv\\Scripts\\python.exe",
+    "patchcore_demo.py",
+    "--data",
+    "MVTec/mvtech_anomaly_detection",
+    "--category",
+    "bottle",
+    "--size",
+    "320",
+    "--limit",
+    "5",
+    "--calib-ratio",
+    "0.3",
+    "--no-pretrain",
+    "--cpu",
+    "--seed",
+    "0",
+    "--split-seed",
+    "42",
+    "--out",
+    "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\00_protocol_smoke_retry02\\native"
+  ],
+  "working_directory": "E:\\面试项目文件夹\\patchcore-mvtec",
+  "started_epoch": 1793801875.7249916,
+  "finished_epoch": 1793801898.3155234,
+  "duration_seconds": 22.591,
+  "python": "3.13.9",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.5.4",
+  "torch": "2.7.0+cu128",
+  "torchvision": "0.22.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "git_commit": "5d196f771992f329456138ac50f16ce3c94b508a",
+  "weights": null,
+  "weights_sha256": null,
+  "native_results": "experiment_data\\06_optimization\\00_protocol_smoke_retry02\\native\\results.json",
+  "manifests": [
+    "experiment_data\\06_optimization\\00_protocol_smoke_retry02\\native\\manifests\\bottle.json"
+  ],
+  "note": "MVTec test scores are development results; this wrapper does not make them an independent holdout."
+}

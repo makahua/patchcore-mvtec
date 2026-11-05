@@ -1,0 +1,82 @@
+[
+  {
+    "run": "bottle_legacy_k2000",
+    "category": "bottle",
+    "pixel_auroc": 0.9856,
+    "aupro30": 0.9463,
+    "aupro10": 0.8416,
+    "pro_at_005": 0.9204,
+    "n_regions": 70,
+    "n_images": 83
+  },
+  {
+    "run": "grid_legacy_k2000",
+    "category": "grid",
+    "pixel_auroc": 0.9555,
+    "aupro30": 0.8567,
+    "aupro10": 0.7568,
+    "pro_at_005": 0.8387,
+    "n_regions": 174,
+    "n_images": 78
+  },
+  {
+    "run": "screw_legacy_k0500",
+    "category": "screw",
+    "pixel_auroc": 0.9678,
+    "aupro30": 0.8587,
+    "aupro10": 0.7213,
+    "pro_at_005": 0.76,
+    "n_regions": 140,
+    "n_images": 160
+  },
+  {
+    "run": "screw_legacy_k1000",
+    "category": "screw",
+    "pixel_auroc": 0.9789,
+    "aupro30": 0.8919,
+    "aupro10": 0.7867,
+    "pro_at_005": 0.8391,
+    "n_regions": 140,
+    "n_images": 160
+  },
+  {
+    "run": "screw_legacy_k2000",
+    "category": "screw",
+    "pixel_auroc": 0.9823,
+    "aupro30": 0.927,
+    "aupro10": 0.8315,
+    "pro_at_005": 0.9007,
+    "n_regions": 140,
+    "n_images": 160
+  },
+  {
+    "run": "screw_legacy_k4000",
+    "category": "screw",
+    "pixel_auroc": 0.9841,
+    "aupro30": 0.9377,
+    "aupro10": 0.8422,
+    "pro_at_005": 0.9073,
+    "n_regions": 140,
+    "n_images": 160
+  },
+  {
+    "run": "screw_projected_000558",
+    "category": "screw",
+    "pixel_auroc": 0.9811,
+    "aupro30": 0.9094,
+    "aupro10": 0.8079,
+    "pro_at_005": 0.8635,
+    "n_regions": 140,
+    "n_images": 160
+  },
+  {
+    "run": "screw_projected_001",
+    "category": "screw",
+    "pixel_auroc": 0.9856,
+    "aupro30": 0.9361,
+    "aupro10": 0.8438,
+    "pro_at_005": 0.91,
+    "n_regions": 140,
+    "n_images": 160
+  }
+]

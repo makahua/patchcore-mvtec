@@ -1,0 +1,13 @@
+{
+  "duration_seconds": 53.696,
+  "per_category": [
+    {
+      "category": "grid",
+      "latency_ms": 22.78,
+      "latency_p95_ms": 23.88,
+      "build_seconds": 32.7,
+      "peak_gpu_mb": 566.4
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

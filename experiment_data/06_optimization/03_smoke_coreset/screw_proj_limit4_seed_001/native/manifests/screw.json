@@ -1,0 +1,41 @@
+{
+  "category": "screw",
+  "seed": 1,
+  "split_seed": 42,
+  "train_seed": 2,
+  "calib_ratio": 0.3,
+  "train_limit": 0,
+  "train": [
+    "screw/train/good/000.png",
+    "screw/train/good/001.png",
+    "screw/train/good/002.png",
+    "screw/train/good/003.png"
+  ],
+  "calibration": [],
+  "test": [
+    "screw/test/good/000.png",
+    "screw/test/good/001.png",
+    "screw/test/good/002.png",
+    "screw/test/good/003.png",
+    "screw/test/manipulated_front/000.png",
+    "screw/test/manipulated_front/001.png",
+    "screw/test/manipulated_front/002.png",
+    "screw/test/manipulated_front/003.png",
+    "screw/test/scratch_head/000.png",
+    "screw/test/scratch_head/001.png",
+    "screw/test/scratch_head/002.png",
+    "screw/test/scratch_head/003.png",
+    "screw/test/scratch_neck/000.png",
+    "screw/test/scratch_neck/001.png",
+    "screw/test/scratch_neck/002.png",
+    "screw/test/scratch_neck/003.png",
+    "screw/test/thread_side/000.png",
+    "screw/test/thread_side/001.png",
+    "screw/test/thread_side/002.png",
+    "screw/test/thread_side/003.png",
+    "screw/test/thread_top/000.png",
+    "screw/test/thread_top/001.png",
+    "screw/test/thread_top/002.png",
+    "screw/test/thread_top/003.png"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9270325517319852,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9270325517319852,
+  "aupru_max": 0.9270325517319852,
+  "worst": [
+    {
+      "category": "screw",
+      "aupru": 0.9270325517319852,
+      "aupru_01": 0.831541350275184,
+      "pro_at_005": 0.9006824882629348,
+      "pro_at_01": 0.9452392513587343,
+      "pixel_auroc": 0.9822647195194218,
+      "n_regions": 140,
+      "n_images": 160
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9270325517319852,
+    "aupru_01": 0.831541350275184,
+    "pro_at_005": 0.9006824882629348,
+    "pro_at_01": 0.9452392513587343,
+    "n_regions": 140,
+    "n_images": 160
+  },
+  "per_class": [
+    {
+      "category": "screw",
+      "aupru": 0.9270325517319852,
+      "aupru_01": 0.831541350275184,
+      "pro_at_005": 0.9006824882629348,
+      "pro_at_01": 0.9452392513587343,
+      "pixel_auroc": 0.9822647195194218,
+      "n_regions": 140,
+      "n_images": 160
+    }
+  ],
+  "images": [
+    {
+      "category": "screw",
+      "images": 160,
+      "missing_masks": 0,
+      "total": 160,
+      "defect_images": 119
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\07_aupro_backfill\\screw_legacy_k2000\\pixel_dumps"
+  }
+}

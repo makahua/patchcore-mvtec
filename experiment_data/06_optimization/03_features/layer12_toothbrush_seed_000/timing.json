@@ -1,0 +1,13 @@
+{
+  "duration_seconds": 93.265,
+  "per_category": [
+    {
+      "category": "toothbrush",
+      "latency_ms": 26.36,
+      "latency_p95_ms": 26.85,
+      "build_seconds": 75.4,
+      "peak_gpu_mb": 229.6
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

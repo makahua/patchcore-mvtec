@@ -1,0 +1,62 @@
+{
+  "status": "completed",
+  "return_code": 0,
+  "aggregate": {
+    "macro": {
+      "img_auroc": 0.9391,
+      "pixel_auroc": 0.9782,
+      "recall_at_thr": 0.7143,
+      "false_positive_rate": 0.0732,
+      "latency_ms": 18.88,
+      "latency_p95_ms": 20.09,
+      "build_seconds": 106.9,
+      "peak_gpu_mb": 175.2
+    },
+    "pooled_image_auroc": 0.9391268702602993,
+    "pooled_test_images": 160,
+    "dataset_role": "development; MVTec test has been repeatedly inspected"
+  },
+  "categories": [
+    {
+      "category": "screw",
+      "n_train": 224,
+      "n_calib": 96,
+      "n_test": 160,
+      "size": 320,
+      "neighbors": 0,
+      "neighbor_coreset": "",
+      "neighbor_pad": "",
+      "preprocess": "stretch",
+      "aspect_crop": 0.0,
+      "imagenet_norm": 0,
+      "coreset": "greedy",
+      "coreset_k": 1000,
+      "coreset_ratio": null,
+      "projection_dim": null,
+      "starting_points": null,
+      "score_agg": "max",
+      "blur_sigma": 2.0,
+      "train_limit": 0,
+      "train_seed": 2,
+      "perturb_brightness": 1.0,
+      "perturb_noise": 0.0,
+      "perturb_blur": 0.0,
+      "perturb_calibration": 0,
+      "calib_ratio": 0.3,
+      "thr_pct": 99.0,
+      "seed": 1,
+      "split_seed": 42,
+      "weights": "wide_resnet50_2_timm.pth",
+      "mem_patches": 1000,
+      "img_auroc": 0.9391,
+      "pixel_auroc": 0.9782,
+      "threshold": 39.7641,
+      "recall_at_thr": 0.7143,
+      "false_positive_rate": 0.0732,
+      "latency_ms": 18.88,
+      "latency_p95_ms": 20.09,
+      "build_seconds": 106.9,
+      "peak_gpu_mb": 175.2
+    }
+  ]
+}
