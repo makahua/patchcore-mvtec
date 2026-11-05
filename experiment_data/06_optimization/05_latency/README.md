@@ -37,6 +37,7 @@ GPU 段 p50：串行 18.82 / 18.66 / 19.57 ms，预取 19.69 / 19.69 / 19.73 ms 
 ## 文件
 
 - `e2e_metal_nut.json` / `e2e_bottle.json` / `e2e_carpet.json`：每个含 `sequential`、`prefetch`、`speedup`、`score_max_abs_diff_sampled`、`peak_gpu_mb`。
+- `ceiling_probe.json`：GPU 段拆解与后续手段的上限估算（`tools/ceiling_probe.py` 生成；前向 batch 1–16、FP16 autocast、FP16 检索、CPU 解码容量）。解读见 [`docs/e2e-ceiling.md`](../../../docs/e2e-ceiling.md)。
 
 ## 复现
 
