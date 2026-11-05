@@ -1,0 +1,30 @@
+{
+  "category": "bottle",
+  "size": 320,
+  "mem_patches": 2000,
+  "n": 150,
+  "warmup": 10,
+  "workers": 6,
+  "depth": 12,
+  "device": "cuda",
+  "mode": "performance only; fixed bottle bank",
+  "sequential": {
+    "throughput_ips": 32.68,
+    "total_p50_ms": 30.1,
+    "total_p95_ms": 33.93,
+    "gpu_p50_ms": 12.56,
+    "cpu_p50_ms": 17.5,
+    "wall_s": 4.59
+  },
+  "prefetch": {
+    "throughput_ips": 66.1,
+    "resident_p50_ms": 269.57,
+    "resident_p95_ms": 345.0,
+    "queue_p50_ms": 233.82,
+    "gpu_p50_ms": 14.47,
+    "wall_s": 2.27
+  },
+  "speedup": 2.023,
+  "score_max_abs_diff_sampled": 0.0,
+  "peak_gpu_mb": 194.3
+}

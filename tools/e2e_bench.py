@@ -54,6 +54,8 @@ def main():
     ap.add_argument("--warmup", type=int, default=10)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--depth", type=int, default=8)
+    ap.add_argument("--fp16", action="store_true",
+                    help="前向 autocast(fp16) + 检索 fp16（默认关，精度闸门见 docs/e2e-ceiling.md）")
     ap.add_argument("--out", default="")
     a = ap.parse_args()
 
@@ -89,15 +91,27 @@ def main():
         x = torch.from_numpy(arr).permute(2, 0, 1)
         return x, t_read, time.perf_counter() - t
 
+    mem_h = mem.half() if a.fp16 else mem
+
     def infer(x):
         with torch.no_grad():
-            feat = model(x.unsqueeze(0).to(device))
+            xb = x.unsqueeze(0).to(device)
+            if a.fp16:
+                with torch.autocast(device_type="cuda", dtype=torch.float16):
+                    feat = model(xb)
+                feat = feat.float()
+            else:
+                feat = model(xb)
             emb, (h, w) = P.embed(feat, neighbors)
             emb = emb.squeeze(0)
             mins = []
             for i in range(0, emb.shape[0], 2048):
-                d = torch.cdist(emb[i:i + 2048], mem)
-                mins.append(d.min(dim=1).values)
+                if a.fp16:
+                    d = torch.cdist(emb[i:i + 2048].half(), mem_h)
+                    mins.append(d.min(dim=1).values.float())
+                else:
+                    d = torch.cdist(emb[i:i + 2048], mem)
+                    mins.append(d.min(dim=1).values)
             patch = torch.cat(mins).reshape(h, w)
             if sigma > 0:
                 patch = P.gaussian_blur(patch, sigma=sigma)

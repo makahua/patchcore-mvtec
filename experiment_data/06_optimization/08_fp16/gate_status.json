@@ -1,0 +1,30 @@
+[
+  {
+    "category": "screw",
+    "prec": "fp32",
+    "run_dir": "experiment_data\\06_optimization\\08_fp16\\screw_fp32_seed_000",
+    "rc": 0,
+    "aupro_rc": 0
+  },
+  {
+    "category": "screw",
+    "prec": "fp16",
+    "run_dir": "experiment_data\\06_optimization\\08_fp16\\screw_fp16_seed_000",
+    "rc": 0,
+    "aupro_rc": 0
+  },
+  {
+    "category": "bottle",
+    "prec": "fp32",
+    "run_dir": "experiment_data\\06_optimization\\08_fp16\\bottle_fp32_seed_000",
+    "rc": 0,
+    "aupro_rc": 0
+  },
+  {
+    "category": "bottle",
+    "prec": "fp16",
+    "run_dir": "experiment_data\\06_optimization\\08_fp16\\bottle_fp16_seed_000",
+    "rc": 0,
+    "aupro_rc": 0
+  }
+]

@@ -348,15 +348,32 @@ def expand_selected(base_maps, idx, pad='zero'):
 
 @torch.no_grad()
 def patch_scores(model, mem, x, device, neighbors=False, score_agg='max', blur_sigma=2.0,
-                 neighbor_pad='zero'):
-    feat = model(x.to(device))
+                 neighbor_pad='zero', fp16=False):
+    """单图打分。
+
+    fp16=True 时：前向走 autocast(fp16)，最近邻在 fp16 下算、距离再转回 fp32。
+    默认 False，与历史结果逐位一致（见 docs/e2e-ceiling.md 的精度闸门）。
+    """
+    xb = x.to(device)
+    if fp16:
+        with torch.autocast(device_type='cuda', dtype=torch.float16):
+            feat = model(xb)
+        feat = feat.float()
+    else:
+        feat = model(xb)
     emb, (h, w) = embed(feat, neighbors, neighbor_pad)
     emb = emb.squeeze(0)                                    # N, C
     # 分块算最近邻距离，避免显存炸
     mins = []
-    for i in range(0, emb.shape[0], 2048):
-        d = torch.cdist(emb[i:i + 2048], mem)
-        mins.append(d.min(dim=1).values)
+    if fp16:
+        mem_h = mem.half()
+        for i in range(0, emb.shape[0], 2048):
+            d = torch.cdist(emb[i:i + 2048].half(), mem_h)
+            mins.append(d.min(dim=1).values.float())
+    else:
+        for i in range(0, emb.shape[0], 2048):
+            d = torch.cdist(emb[i:i + 2048], mem)
+            mins.append(d.min(dim=1).values)
     patch = torch.cat(mins).reshape(h, w)
     patch = gaussian_blur(patch, sigma=blur_sigma) if blur_sigma > 0 else patch
     if score_agg == 'max':
@@ -472,7 +489,8 @@ def run_category(args, cat, device):
             x_cal = perturb_img(x_cal, args.perturb_brightness, args.perturb_noise,
                                 args.perturb_blur, args.seed + i)
         _, s = patch_scores(model, mem, x_cal, device,
-                            args.neighbors, args.score_agg, args.blur_sigma, args.neighbor_pad)
+                            args.neighbors, args.score_agg, args.blur_sigma, args.neighbor_pad,
+                            fp16=args.fp16)
         train_scores.append(s)
     thr = float(np.percentile(train_scores, args.thr_pct))
 
@@ -488,7 +506,7 @@ def run_category(args, cat, device):
             torch.cuda.synchronize()
         t = time.time()
         patch, s = patch_scores(model, mem, x, device, args.neighbors, args.score_agg,
-                                args.blur_sigma, args.neighbor_pad)
+                                args.blur_sigma, args.neighbor_pad, fp16=args.fp16)
         if device.type == 'cuda':
             torch.cuda.synchronize()
         lat.append((time.time() - t) * 1000)
@@ -578,7 +596,7 @@ def run_category(args, cat, device):
                coreset_ratio=args.coreset_ratio if args.coreset_method == 'projected-greedy' or not args.greedy else None,
                projection_dim=args.projection_dim if args.coreset_method == 'projected-greedy' else None,
                starting_points=args.starting_points if args.coreset_method == 'projected-greedy' else None,
-               score_agg=args.score_agg, blur_sigma=args.blur_sigma,
+               score_agg=args.score_agg, blur_sigma=args.blur_sigma, fp16=int(bool(args.fp16)),
                train_limit=args.train_limit, train_seed=args.seed + 1,
                perturb_brightness=args.perturb_brightness,
                perturb_noise=args.perturb_noise, perturb_blur=args.perturb_blur,
@@ -643,6 +661,8 @@ def main():
     ap.add_argument('--calib-ratio', type=float, default=0.0,
                     help='从 train/good 里留出这一比例做阈值标定（0=旧行为，用建库图自评分，阈值会偏低）')
     ap.add_argument('--seed', type=int, default=0)
+    ap.add_argument('--fp16', action='store_true',
+                    help='前向 autocast(fp16) + 最近邻 fp16 计算；默认关（精度闸门见 docs/e2e-ceiling.md）')
     ap.add_argument('--split-seed', type=int, default=None,
                     help='固定 calibration/train 划分 seed；省略时沿用 --seed')
     ap.add_argument('--out', default='experiment_data/01_mvtec_gpu/runs/default')
