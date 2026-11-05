@@ -123,9 +123,15 @@ def perturb_img(x, brightness=1.0, noise_std=0.0, blur_sigma=0.0, seed=0):
 
 
 class Features(torch.nn.Module):
-    """wide_resnet50_2 的 layer2 + layer3 特征拼接，输出 /8 分辨率 1536 通道。"""
+    """wide_resnet50_2 的多层特征拼接，输出网格由 --layers 决定（2+3 → /8，1+2/1+2+3 → /4）。
 
-    def __init__(self, pretrained=True, weights_path=None, imagenet_norm=False):
+    --layers 2+3（默认）：layer2(512,/8) + layer3(1024,/16→上采样) = 1536 通道，/8 网格（320 输入 = 40×40 = 1600 patch）
+    --layers 1+2      ：layer1(256,/4) + layer2(512,/8→双线性上采样到 /4) = 768 通道，/4 网格（80×80 = 6400 patch）
+    --layers 1+2+3    ：256 + 512 + 1024 = 1792 通道，/4 网格（6400 patch）
+    1+2 / 1+2+3 保留 layer1 的 /4 分辨率（不做降采样），深层统一双线性上采样对齐。
+    """
+
+    def __init__(self, pretrained=True, weights_path=None, imagenet_norm=False, layers='2+3'):
         super().__init__()
         if weights_path:
             # 本地权重文件（.pth/.pickle/.bin），支持 torchvision 原始 state_dict 与 Lightning 封装
@@ -153,6 +159,9 @@ class Features(torch.nn.Module):
             m = wide_resnet50_2(weights=Wide_ResNet50_2_Weights.IMAGENET1K_V1 if pretrained else None)
         self.stem = torch.nn.Sequential(m.conv1, m.bn1, m.relu, m.maxpool)
         self.l1, self.l2, self.l3 = m.layer1, m.layer2, m.layer3
+        if layers not in ('2+3', '1+2', '1+2+3'):
+            raise SystemExit(f'--layers 只支持 2+3 / 1+2 / 1+2+3，收到 {layers!r}')
+        self.layers = layers
         # ImageNet 归一化做成开关：默认关（保持历史结果可复现）。
         # 实测在 screw 上打开反而更差（image AUROC 0.901→0.867），推测 BN 已吸收输入尺度差异，
         # 但只验过一个类，别当结论用。要开就加 --imagenet-norm。
@@ -163,11 +172,19 @@ class Features(torch.nn.Module):
     def forward(self, x):
         if self.imagenet_norm:
             x = (x - self.mean) / self.std
-        x = self.l1(self.stem(x))
-        f2 = self.l2(x)                                     # B,512,H/8,W/8
+        f1 = self.l1(self.stem(x))                          # B,256,H/4,W/4
+        f2 = self.l2(f1)                                    # B,512,H/8,W/8
         f3 = self.l3(f2)                                    # B,1024,H/16,W/16
-        f3 = F.interpolate(f3, size=f2.shape[-2:], mode='bilinear', align_corners=False)
-        return torch.cat([f2, f3], dim=1)                   # B,1536,H/8,W/8
+        if self.layers == '2+3':
+            f3 = F.interpolate(f3, size=f2.shape[-2:], mode='bilinear', align_corners=False)
+            return torch.cat([f2, f3], dim=1)               # B,1536,H/8,W/8
+        # 1+2 / 1+2+3：保持 layer1 的 /4 网格，较深层双线性上采样到 /4
+        size = f1.shape[-2:]
+        f2u = F.interpolate(f2, size=size, mode='bilinear', align_corners=False)
+        if self.layers == '1+2':
+            return torch.cat([f1, f2u], dim=1)              # B,768,H/4,W/4
+        f3u = F.interpolate(f3, size=size, mode='bilinear', align_corners=False)
+        return torch.cat([f1, f2u, f3u], dim=1)             # B,1792,H/4,W/4
 
 
 def base_desc(feat):
@@ -262,6 +279,46 @@ def coreset_greedy(feats, k, seed=0, ratio=0.1, return_idx=False):
     return feats[sel]
 
 
+def coreset_projected_greedy(feats, ratio, seed=0, projection_dim=128,
+                             starting_points=10, device=None):
+    """Approximate greedy coreset using a random low-dimensional projection.
+
+    Selection happens in projected space; returned bank vectors remain in the
+    original feature space. Unlike legacy ``coreset_greedy``, every candidate
+    participates and the target size is a percentage of the full candidate set.
+    """
+    if not 0 < ratio <= 1:
+        raise ValueError('projected greedy ratio must be in (0, 1]')
+    if feats.ndim != 2 or feats.shape[0] == 0:
+        raise ValueError('features must be a non-empty [N, D] tensor')
+    n, dim = feats.shape
+    k = min(n, max(1, int(n * ratio)))
+    device = torch.device(device or ('cuda' if torch.cuda.is_available() else 'cpu'))
+    generator = torch.Generator(device='cpu').manual_seed(int(seed))
+    projection = torch.randn((dim, projection_dim), generator=generator,
+                             dtype=torch.float32) / np.sqrt(projection_dim)
+    projection = projection.to(device)
+    projected = torch.empty((n, projection_dim), dtype=torch.float32, device=device)
+    chunk = max(1, min(16384, n))
+    with torch.no_grad():
+        for start in range(0, n, chunk):
+            projected[start:start + chunk] = feats[start:start + chunk].to(device) @ projection
+        rng = np.random.RandomState(seed)
+        starts = rng.choice(n, size=min(max(1, starting_points), n), replace=False)
+        nearest = torch.cdist(projected, projected[torch.as_tensor(starts, device=device)]).mean(dim=1)
+        selected = torch.zeros(n, dtype=torch.bool, device=device)
+        indices = []
+        for _ in range(k):
+            nearest.masked_fill_(selected, -1)
+            idx = int(torch.argmax(nearest).item())
+            selected[idx] = True
+            indices.append(idx)
+            distance = torch.cdist(projected, projected[idx:idx + 1]).squeeze(1)
+            nearest = torch.minimum(nearest, distance)
+    idx = torch.tensor(indices, dtype=torch.long)
+    return feats[idx], idx
+
+
 def expand_selected(base_maps, idx, pad='zero'):
     """按「先在基础描述子上选点」的顺序补回 9 邻域：只在选中的 2000 个位置上展开。
 
@@ -322,7 +379,8 @@ def run_category(args, cat, device):
         return None
 
     model = Features(pretrained=not args.no_pretrain, weights_path=args.weights,
-                     imagenet_norm=getattr(args, 'imagenet_norm', False)).to(device).eval()
+                     imagenet_norm=getattr(args, 'imagenet_norm', False),
+                     layers=args.layers).to(device).eval()
     train_imgs = list_images(train_dir)
     test_imgs = list_images(test_dir)
     if args.limit:  # 每个子目录各自截断，避免 --limit 只取到某一类缺陷
@@ -380,7 +438,10 @@ def run_category(args, cat, device):
         if args.neighbor_pad == 'roll':
             print(f'[{cat}] 注意：base 选点不支持环形填充，按 zero 处理（--neighbor-pad roll 只在 expanded 模式下生效）')
         flat = torch.cat([m.reshape(m.shape[0], -1).t() for m in base_maps], 0)   # (N, C)
-        if args.greedy:
+        if args.coreset_method == 'projected-greedy':
+            _, sel = coreset_projected_greedy(flat, args.coreset_ratio, args.seed,
+                                               args.projection_dim, args.starting_points, device)
+        elif args.greedy:
             _, sel = coreset_greedy(flat, args.greedy, args.seed, return_idx=True)
         else:
             keep = max(1, int(flat.shape[0] * args.coreset_ratio))
@@ -390,7 +451,11 @@ def run_category(args, cat, device):
         bank_desc = f'{tuple(flat.shape)} (base) -> {len(sel)} 点 → 9 邻域展开'
     else:
         bank = torch.cat(bank, 0)
-        if args.greedy:
+        if args.coreset_method == 'projected-greedy':
+            mem, _ = coreset_projected_greedy(bank, args.coreset_ratio, args.seed,
+                                              args.projection_dim, args.starting_points, device)
+            mem = mem.to(device)
+        elif args.greedy:
             mem = coreset_greedy(bank, args.greedy, args.seed).to(device)
         else:
             mem = torch.from_numpy(corset_random(bank.numpy(), args.coreset_ratio, args.seed)).to(device)
@@ -494,20 +559,25 @@ def run_category(args, cat, device):
                                     blur_sigma=args.perturb_blur,
                                     calibration_reperturbed=args.perturb_calibration),
                        calib=list(map(float, train_scores)),
+                       calibration_source='held_out' if calib_imgs else 'train_self_score_fallback',
+                       calibration_paths=[rel_path(p, args.data, cat) for p in calib_imgs],
                        test=[dict(path=rel_path(p, args.data, cat), label=l, score=s)
                              for p, l, s in zip(test_imgs, y, score)]),
                   f, ensure_ascii=False)
 
     res = dict(category=cat, n_train=len(train_imgs), n_calib=len(calib_imgs), n_test=len(test_imgs),
                # ---- 配置列：没有这些，几份 results*/ 目录事后无法区分 ----
-               size=args.size, neighbors=int(bool(args.neighbors)),
+               size=args.size, layers=args.layers, neighbors=int(bool(args.neighbors)),
                neighbor_coreset=(args.neighbor_coreset if args.neighbors else ''),
                neighbor_pad=(args.neighbor_pad if args.neighbors else ''),
                preprocess=args.preprocess, aspect_crop=args.aspect_crop,
                imagenet_norm=int(bool(getattr(args, 'imagenet_norm', False))),
-               coreset='greedy' if args.greedy else 'random',
-               coreset_k=(args.greedy or None),  # 请求的 k；random 模式下为 None
-               coreset_ratio=(None if args.greedy else args.coreset_ratio),
+               coreset=('projected_greedy' if args.coreset_method == 'projected-greedy'
+                        else ('greedy' if args.greedy else 'random')),
+               coreset_k=(args.greedy or None),
+               coreset_ratio=args.coreset_ratio if args.coreset_method == 'projected-greedy' or not args.greedy else None,
+               projection_dim=args.projection_dim if args.coreset_method == 'projected-greedy' else None,
+               starting_points=args.starting_points if args.coreset_method == 'projected-greedy' else None,
                score_agg=args.score_agg, blur_sigma=args.blur_sigma,
                train_limit=args.train_limit, train_seed=args.seed + 1,
                perturb_brightness=args.perturb_brightness,
@@ -517,7 +587,7 @@ def run_category(args, cat, device):
                split_seed=args.split_seed,
                weights=os.path.basename(args.weights) if args.weights else 'IMAGENET1K_V1',
                # ---- 指标列 ----
-               mem_patches=int(mem.shape[0]), img_auroc=round(img_auc, 4),
+               feat_dim=int(mem.shape[1]), mem_patches=int(mem.shape[0]), img_auroc=round(img_auc, 4),
                pixel_auroc=round(px_auc, 4), threshold=round(thr, 4),
                recall_at_thr=round(rec, 4), false_positive_rate=round(fpr, 4),
                latency_ms=round(float(np.mean(lat)), 2),
@@ -534,6 +604,8 @@ def main():
     ap.add_argument('--data', required=True, help='MVTec AD 根目录，里面有 bottle/、cable/ 等')
     ap.add_argument('--category', default='bottle', help='类别名，或 all')
     ap.add_argument('--size', type=int, default=256)
+    ap.add_argument('--layers', choices=['2+3', '1+2', '1+2+3'], default='2+3',
+                    help='特征层组合：2+3（1536 维，/8 网格 40x40）；1+2（768）、1+2+3（1792）统一到 /4 网格 80x80')
     ap.add_argument('--preprocess', choices=['stretch', 'letterbox'], default='stretch',
                     help='resize 策略：stretch=直接拉伸；letterbox=等比缩放+灰边补齐（方图输入时两者等价）')
     ap.add_argument('--aspect-crop', type=float, default=0.0,
@@ -545,7 +617,12 @@ def main():
     ap.add_argument('--neighbor-pad', choices=['zero', 'replicate', 'roll'], default='zero',
                     help='9 邻域边界填充：zero=与上游 Unfold(padding=1) 一致（默认）；'
                          'replicate=复制边界；roll=旧的环形平移（有环绕缺陷，仅用于复现旧结果）')
-    ap.add_argument('--coreset-ratio', type=float, default=0.1, help='随机抽样的记忆库比例')
+    ap.add_argument('--coreset-ratio', type=float, default=0.1,
+                    help='random 模式保留比例；projected-greedy 模式为全候选池近似贪心保留比例')
+    ap.add_argument('--coreset-method', choices=['legacy', 'projected-greedy'], default='legacy',
+                    help='legacy 保留原随机/固定-k行为；projected-greedy 使用随机投影近似贪心+比例预算')
+    ap.add_argument('--projection-dim', type=int, default=128)
+    ap.add_argument('--starting-points', type=int, default=10)
     ap.add_argument('--greedy', type=int, default=0, help='k-center 贪心保留 patch 数，0=用随机抽样')
     ap.add_argument('--thr-pct', type=float, default=99.0, help='阈值取训练集分数的百分位，漏检优先就调高')
     ap.add_argument('--score-agg', choices=['max', 'top5'], default='max',

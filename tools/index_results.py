@@ -30,15 +30,24 @@ CANON = [
 ]
 HEAD = ['archive_path']
 
+# 06_optimization 是「执行版计划」的规范化实验包：每个 run 的 canonical 记录是
+# metrics.json / per_image.csv（见 tools/summarize_runs.py），其 native/results.csv
+# 只是单次运行的逐类明细，混进本索引会把同一配置重复计入。
+SKIP_DIRS = ('06_optimization',)
+
 
 def scan(exp_root):
     rows = []
     seen = []
-    for dirpath, _dirnames, filenames in os.walk(exp_root):
+    for dirpath, dirnames, filenames in os.walk(exp_root):
+        rel_dir = os.path.relpath(dirpath, exp_root).replace(os.sep, '/')
+        if any(part in SKIP_DIRS for part in rel_dir.split('/')):
+            dirnames[:] = []
+            continue
         if 'results.csv' not in filenames:
             continue
         fp = os.path.join(dirpath, 'results.csv')
-        rel = os.path.relpath(dirpath, exp_root).replace(os.sep, '/')
+        rel = rel_dir
         with io.open(fp, 'r', encoding='utf-8-sig', newline='') as f:
             rd = csv.DictReader(f)
             for r in rd:
