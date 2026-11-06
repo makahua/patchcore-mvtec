@@ -29,14 +29,15 @@ jobs:
           python -m pip install numpy pytest
 
       - name: Syntax check
-        run: python -m py_compile patchcore_demo.py classify.py analyze.py tools/latency_breakdown.py tools/conformal_threshold.py tools/threshold_stability.py tools/pro_aupro.py tools/check_links.py tools/index_results.py
+        run: python -m compileall -q patchcore_demo.py classify.py analyze.py pyqt_demo.py tools tests
 
       - name: Unit tests
         run: python -m pytest tests -q
 
       - name: Offline report smoke test
-        # 读仓库里已提交的 scores，不需要数据集/权重/GPU；
-        # 顺便钉住 README 的面口径数字：macro 0.9805 / pooled 0.8812。
+        # 读仓库里已提交的历史 scores，不需要数据集/权重/GPU；
+        # 钉住的是「早期快照」口径（macro 0.9805 / pooled 0.8812），
+        # 当前主表口径由下面 README numbers 那一步负责。
         run: |
           python classify.py report --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2 | tee report.txt
           grep -q '0.9805' report.txt
@@ -46,6 +47,11 @@ jobs:
       - name: Results index is up to date
         # 索引是给人的视图，磁盘上的 results.csv 才是事实；两者漂了就让 CI 红
         run: python tools/index_results.py --check
+
+      - name: README numbers match the 90-run baseline
+        # 第二道数字闸：README 主表 / docs/pair-baseline.json / 10_pair 的 90 个 run
+        # 三者必须一致，避免「文档写 A、仓库算出来 B」
+        run: python tools/check_readme_numbers.py
 
   docs:
     name: docs link check
