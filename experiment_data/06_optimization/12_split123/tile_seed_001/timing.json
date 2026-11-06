@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 145.321,
+  "per_category": [
+    {
+      "category": "tile",
+      "latency_ms": 18.45,
+      "latency_p95_ms": 18.6,
+      "build_seconds": 124.1,
+      "peak_gpu_mb": 190.0,
+      "peak_cpu_mb": 4110.6,
+      "bank_file": "banks\\tile.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

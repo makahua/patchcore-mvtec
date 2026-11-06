@@ -1,0 +1,56 @@
+{
+  "command": [
+    "E:\\面试项目文件夹\\patchcore-mvtec\\.venv\\Scripts\\python.exe",
+    "patchcore_demo.py",
+    "--category",
+    "hazelnut",
+    "--seed",
+    "0",
+    "--data",
+    "MVTec/mvtech_anomaly_detection",
+    "--size",
+    "320",
+    "--greedy",
+    "2000",
+    "--calib-ratio",
+    "0.3",
+    "--thr-pct",
+    "99.5",
+    "--blur-sigma",
+    "2",
+    "--split-seed",
+    "123",
+    "--weights",
+    "torch_cache/wide_resnet50_2_timm.pth",
+    "--save-bank",
+    "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\12_split123\\hazelnut_seed_000\\banks",
+    "--out",
+    "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\12_split123\\hazelnut_seed_000\\native"
+  ],
+  "working_directory": "E:\\面试项目文件夹\\patchcore-mvtec",
+  "started_epoch": 1793940846.045374,
+  "finished_epoch": 1793941139.9900262,
+  "duration_seconds": 293.945,
+  "python": "3.13.9",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.5.4",
+  "torch": "2.7.0+cu128",
+  "torchvision": "0.22.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "git_commit": "64c35a20ec74e724c2cc1387827b6cae96b152ae",
+  "weights": "E:\\面试项目文件夹\\patchcore-mvtec\\torch_cache\\wide_resnet50_2_timm.pth",
+  "weights_sha256": "18108459320717df6bf3f3673c0812203d1cffe979cfda43803389354947dc64",
+  "native_results": "experiment_data\\06_optimization\\12_split123\\hazelnut_seed_000\\native\\results.json",
+  "manifests": [
+    "experiment_data\\06_optimization\\12_split123\\hazelnut_seed_000\\native\\manifests\\hazelnut.json"
+  ],
+  "note": "MVTec test scores are development results; this wrapper does not make them an independent holdout.",
+  "source_sha256": {
+    "patchcore_demo.py": "7cbd50b2c90bd4fcea47a94b84480f0f5e73cec898f429b4b41927b66711a88e",
+    "tools/run_experiment.py": "95c9262ca6eb061e6984d021f539814f58f3a9ad3825091d13ecfe12ae0a27a8"
+  },
+  "banks": [
+    "experiment_data\\06_optimization\\12_split123\\hazelnut_seed_000\\banks\\hazelnut.npz"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 152.319,
+  "per_category": [
+    {
+      "category": "cable",
+      "latency_ms": 23.08,
+      "latency_p95_ms": 24.62,
+      "build_seconds": 125.9,
+      "peak_gpu_mb": 190.0,
+      "peak_cpu_mb": 4037.6,
+      "bank_file": "banks\\cable.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}
