@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.967051028103287,
+  "aupru_std": 0.0,
+  "aupru_min": 0.967051028103287,
+  "aupru_max": 0.967051028103287,
+  "worst": [
+    {
+      "category": "zipper",
+      "aupru": 0.967051028103287,
+      "aupru_01": 0.925298963308145,
+      "pro_at_005": 0.9738382575056682,
+      "pro_at_01": 0.9840267845975994,
+      "pixel_auroc": 0.9870546218242721,
+      "n_regions": 183,
+      "n_images": 151
+    }
+  ],
+  "pooled": {
+    "aupru": 0.967051028103287,
+    "aupru_01": 0.925298963308145,
+    "pro_at_005": 0.9738382575056682,
+    "pro_at_01": 0.9840267845975994,
+    "n_regions": 183,
+    "n_images": 151
+  },
+  "per_class": [
+    {
+      "category": "zipper",
+      "aupru": 0.967051028103287,
+      "aupru_01": 0.925298963308145,
+      "pro_at_005": 0.9738382575056682,
+      "pro_at_01": 0.9840267845975994,
+      "pixel_auroc": 0.9870546218242721,
+      "n_regions": 183,
+      "n_images": 151
+    }
+  ],
+  "images": [
+    {
+      "category": "zipper",
+      "images": 151,
+      "missing_masks": 0,
+      "total": 151,
+      "defect_images": 119
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/12_zipper_seed_000/pixel_dumps"
+  }
+}

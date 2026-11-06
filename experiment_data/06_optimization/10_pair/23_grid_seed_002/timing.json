@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 160.123,
+  "per_category": [
+    {
+      "category": "grid",
+      "latency_ms": 18.57,
+      "latency_p95_ms": 18.66,
+      "build_seconds": 141.7,
+      "peak_gpu_mb": 190.0,
+      "peak_cpu_mb": 4565.8,
+      "bank_file": "banks\\grid.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

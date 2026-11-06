@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9422765622188677,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9422765622188677,
+  "aupru_max": 0.9422765622188677,
+  "worst": [
+    {
+      "category": "toothbrush",
+      "aupru": 0.9422765622188677,
+      "aupru_01": 0.832939712052753,
+      "pro_at_005": 0.9310680415699646,
+      "pro_at_01": 0.983228234566206,
+      "pixel_auroc": 0.9894334377311381,
+      "n_regions": 79,
+      "n_images": 42
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9422765622188677,
+    "aupru_01": 0.832939712052753,
+    "pro_at_005": 0.9310680415699646,
+    "pro_at_01": 0.983228234566206,
+    "n_regions": 79,
+    "n_images": 42
+  },
+  "per_class": [
+    {
+      "category": "toothbrush",
+      "aupru": 0.9422765622188677,
+      "aupru_01": 0.832939712052753,
+      "pro_at_005": 0.9310680415699646,
+      "pro_at_01": 0.983228234566206,
+      "pixel_auroc": 0.9894334377311381,
+      "n_regions": 79,
+      "n_images": 42
+    }
+  ],
+  "images": [
+    {
+      "category": "toothbrush",
+      "images": 42,
+      "missing_masks": 0,
+      "total": 42,
+      "defect_images": 30
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/12_toothbrush_seed_000/pixel_dumps"
+  }
+}

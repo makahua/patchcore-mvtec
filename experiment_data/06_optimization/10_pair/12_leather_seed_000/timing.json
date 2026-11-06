@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 334.68,
+  "per_category": [
+    {
+      "category": "leather",
+      "latency_ms": 26.73,
+      "latency_p95_ms": 28.52,
+      "build_seconds": 301.0,
+      "peak_gpu_mb": 230.8,
+      "peak_cpu_mb": 7470.0,
+      "bank_file": "banks\\leather.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

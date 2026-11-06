@@ -225,12 +225,12 @@ def main() -> int:
         d = mean(paired.get(key, []))
         gates.append((f"总体质量：{label} 配对均值差 ≥ 0", d is not None and d >= 0,
                       "—" if d is None else f"{d:+.4f}"))
-    deg_i = [x for _, di, _ in worst if di is not None]
-    deg_a = [x for _, _, da in worst if da is not None]
+    deg_i = [di for _, di, _ in worst if di is not None]
+    deg_a = [da for _, _, da in worst if da is not None]
     ok_deg = (not deg_i or min(deg_i) >= -a.degrade_gate) and (not deg_a or min(deg_a) >= -a.degrade_gate)
     gates.append((f"单类退化：任一类三 seed 平均下降 ≤ {a.degrade_gate}", ok_deg,
                   f"最差 Δimage {min(deg_i):+.4f}" if deg_i else "—"))
-    lat = mean([per_seed[s]["latency"] for s in seeds])
+    lat = mean([mean([cand[s][c]["latency"].get(c) for c in cats if c in cand[s]]) for s in seeds])
     gates.append((f"算法时延：15 类均值 ≤ {a.latency_gate} ms", lat is not None and lat <= a.latency_gate,
                   "—" if lat is None else f"{lat:.2f} ms"))
     print("| 门槛 | 结果 | 实测 |")

@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 177.097,
+  "per_category": [
+    {
+      "category": "carpet",
+      "latency_ms": 21.19,
+      "latency_p95_ms": 22.35,
+      "build_seconds": 153.3,
+      "peak_gpu_mb": 189.6,
+      "peak_cpu_mb": 4777.0,
+      "bank_file": "banks\\carpet.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

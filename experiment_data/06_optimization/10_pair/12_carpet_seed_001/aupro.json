@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9403474231587515,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9403474231587515,
+  "aupru_max": 0.9403474231587515,
+  "worst": [
+    {
+      "category": "carpet",
+      "aupru": 0.9403474231587515,
+      "aupru_01": 0.8627707420987425,
+      "pro_at_005": 0.9189948842809865,
+      "pro_at_01": 0.9561840145477682,
+      "pixel_auroc": 0.9808215329914993,
+      "n_regions": 98,
+      "n_images": 117
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9403474231587515,
+    "aupru_01": 0.8627707420987425,
+    "pro_at_005": 0.9189948842809865,
+    "pro_at_01": 0.9561840145477682,
+    "n_regions": 98,
+    "n_images": 117
+  },
+  "per_class": [
+    {
+      "category": "carpet",
+      "aupru": 0.9403474231587515,
+      "aupru_01": 0.8627707420987425,
+      "pro_at_005": 0.9189948842809865,
+      "pro_at_01": 0.9561840145477682,
+      "pixel_auroc": 0.9808215329914993,
+      "n_regions": 98,
+      "n_images": 117
+    }
+  ],
+  "images": [
+    {
+      "category": "carpet",
+      "images": 117,
+      "missing_masks": 0,
+      "total": 117,
+      "defect_images": 89
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/12_carpet_seed_001/pixel_dumps"
+  }
+}

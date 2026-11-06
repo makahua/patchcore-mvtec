@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.6866636376927631,
+  "aupru_std": 0.0,
+  "aupru_min": 0.6866636376927631,
+  "aupru_max": 0.6866636376927631,
+  "worst": [
+    {
+      "category": "transistor",
+      "aupru": 0.6866636376927631,
+      "aupru_01": 0.614350892204996,
+      "pro_at_005": 0.6397656402106623,
+      "pro_at_01": 0.677839964133467,
+      "pixel_auroc": 0.7889589664579205,
+      "n_regions": 44,
+      "n_images": 100
+    }
+  ],
+  "pooled": {
+    "aupru": 0.6866636376927631,
+    "aupru_01": 0.614350892204996,
+    "pro_at_005": 0.6397656402106623,
+    "pro_at_01": 0.677839964133467,
+    "n_regions": 44,
+    "n_images": 100
+  },
+  "per_class": [
+    {
+      "category": "transistor",
+      "aupru": 0.6866636376927631,
+      "aupru_01": 0.614350892204996,
+      "pro_at_005": 0.6397656402106623,
+      "pro_at_01": 0.677839964133467,
+      "pixel_auroc": 0.7889589664579205,
+      "n_regions": 44,
+      "n_images": 100
+    }
+  ],
+  "images": [
+    {
+      "category": "transistor",
+      "images": 100,
+      "missing_masks": 0,
+      "total": 100,
+      "defect_images": 40
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/12_transistor_seed_002/pixel_dumps"
+  }
+}

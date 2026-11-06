@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 162.489,
+  "per_category": [
+    {
+      "category": "wood",
+      "latency_ms": 28.01,
+      "latency_p95_ms": 29.57,
+      "build_seconds": 138.0,
+      "peak_gpu_mb": 190.0,
+      "peak_cpu_mb": 4345.5,
+      "bank_file": "banks\\wood.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

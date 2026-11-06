@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9453381899527941,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9453381899527941,
+  "aupru_max": 0.9453381899527941,
+  "worst": [
+    {
+      "category": "hazelnut",
+      "aupru": 0.9453381899527941,
+      "aupru_01": 0.8538542526115783,
+      "pro_at_005": 0.9377196541089775,
+      "pro_at_01": 0.9735549584183371,
+      "pixel_auroc": 0.9870392221650787,
+      "n_regions": 148,
+      "n_images": 110
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9453381899527941,
+    "aupru_01": 0.8538542526115783,
+    "pro_at_005": 0.9377196541089775,
+    "pro_at_01": 0.9735549584183371,
+    "n_regions": 148,
+    "n_images": 110
+  },
+  "per_class": [
+    {
+      "category": "hazelnut",
+      "aupru": 0.9453381899527941,
+      "aupru_01": 0.8538542526115783,
+      "pro_at_005": 0.9377196541089775,
+      "pro_at_01": 0.9735549584183371,
+      "pixel_auroc": 0.9870392221650787,
+      "n_regions": 148,
+      "n_images": 110
+    }
+  ],
+  "images": [
+    {
+      "category": "hazelnut",
+      "images": 110,
+      "missing_masks": 0,
+      "total": 110,
+      "defect_images": 70
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/23_hazelnut_seed_001/pixel_dumps"
+  }
+}

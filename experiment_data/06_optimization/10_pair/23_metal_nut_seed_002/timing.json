@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 136.079,
+  "per_category": [
+    {
+      "category": "metal_nut",
+      "latency_ms": 18.54,
+      "latency_p95_ms": 18.73,
+      "build_seconds": 117.0,
+      "peak_gpu_mb": 189.6,
+      "peak_cpu_mb": 3980.4,
+      "bank_file": "banks\\metal_nut.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

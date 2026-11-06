@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9840211099832141,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9840211099832141,
+  "aupru_max": 0.9840211099832141,
+  "worst": [
+    {
+      "category": "leather",
+      "aupru": 0.9840211099832141,
+      "aupru_01": 0.955146676338988,
+      "pro_at_005": 0.9929753560343649,
+      "pro_at_01": 0.99693520236702,
+      "pixel_auroc": 0.9912493008582323,
+      "n_regions": 102,
+      "n_images": 124
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9840211099832141,
+    "aupru_01": 0.955146676338988,
+    "pro_at_005": 0.9929753560343649,
+    "pro_at_01": 0.99693520236702,
+    "n_regions": 102,
+    "n_images": 124
+  },
+  "per_class": [
+    {
+      "category": "leather",
+      "aupru": 0.9840211099832141,
+      "aupru_01": 0.955146676338988,
+      "pro_at_005": 0.9929753560343649,
+      "pro_at_01": 0.99693520236702,
+      "pixel_auroc": 0.9912493008582323,
+      "n_regions": 102,
+      "n_images": 124
+    }
+  ],
+  "images": [
+    {
+      "category": "leather",
+      "images": 124,
+      "missing_masks": 0,
+      "total": 124,
+      "defect_images": 92
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/12_leather_seed_000/pixel_dumps"
+  }
+}

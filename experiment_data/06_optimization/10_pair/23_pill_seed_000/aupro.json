@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9507270013493041,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9507270013493041,
+  "aupru_max": 0.9507270013493041,
+  "worst": [
+    {
+      "category": "pill",
+      "aupru": 0.9507270013493041,
+      "aupru_01": 0.8768792452674948,
+      "pro_at_005": 0.9364727636868206,
+      "pro_at_01": 0.9706823975802478,
+      "pixel_auroc": 0.9768817029467705,
+      "n_regions": 248,
+      "n_images": 167
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9507270013493041,
+    "aupru_01": 0.8768792452674948,
+    "pro_at_005": 0.9364727636868206,
+    "pro_at_01": 0.9706823975802478,
+    "n_regions": 248,
+    "n_images": 167
+  },
+  "per_class": [
+    {
+      "category": "pill",
+      "aupru": 0.9507270013493041,
+      "aupru_01": 0.8768792452674948,
+      "pro_at_005": 0.9364727636868206,
+      "pro_at_01": 0.9706823975802478,
+      "pixel_auroc": 0.9768817029467705,
+      "n_regions": 248,
+      "n_images": 167
+    }
+  ],
+  "images": [
+    {
+      "category": "pill",
+      "images": 167,
+      "missing_masks": 0,
+      "total": 167,
+      "defect_images": 141
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/23_pill_seed_000/pixel_dumps"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9213406781216614,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9213406781216614,
+  "aupru_max": 0.9213406781216614,
+  "worst": [
+    {
+      "category": "wood",
+      "aupru": 0.9213406781216614,
+      "aupru_01": 0.8360300348920648,
+      "pro_at_005": 0.9022058121257371,
+      "pro_at_01": 0.9445734330701578,
+      "pixel_auroc": 0.9328094520662752,
+      "n_regions": 171,
+      "n_images": 79
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9213406781216614,
+    "aupru_01": 0.8360300348920648,
+    "pro_at_005": 0.9022058121257371,
+    "pro_at_01": 0.9445734330701578,
+    "n_regions": 171,
+    "n_images": 79
+  },
+  "per_class": [
+    {
+      "category": "wood",
+      "aupru": 0.9213406781216614,
+      "aupru_01": 0.8360300348920648,
+      "pro_at_005": 0.9022058121257371,
+      "pro_at_01": 0.9445734330701578,
+      "pixel_auroc": 0.9328094520662752,
+      "n_regions": 171,
+      "n_images": 79
+    }
+  ],
+  "images": [
+    {
+      "category": "wood",
+      "images": 79,
+      "missing_masks": 0,
+      "total": 79,
+      "defect_images": 60
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/12_wood_seed_001/pixel_dumps"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 142.114,
+  "per_category": [
+    {
+      "category": "transistor",
+      "latency_ms": 27.58,
+      "latency_p95_ms": 29.28,
+      "build_seconds": 117.7,
+      "peak_gpu_mb": 189.6,
+      "peak_cpu_mb": 3902.7,
+      "bank_file": "banks\\transistor.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9426392091310047,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9426392091310047,
+  "aupru_max": 0.9426392091310047,
+  "worst": [
+    {
+      "category": "metal_nut",
+      "aupru": 0.9426392091310047,
+      "aupru_01": 0.8629634412585541,
+      "pro_at_005": 0.9242607085247281,
+      "pro_at_01": 0.9614074900357807,
+      "pixel_auroc": 0.9719978313975028,
+      "n_regions": 136,
+      "n_images": 115
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9426392091310047,
+    "aupru_01": 0.8629634412585541,
+    "pro_at_005": 0.9242607085247281,
+    "pro_at_01": 0.9614074900357807,
+    "n_regions": 136,
+    "n_images": 115
+  },
+  "per_class": [
+    {
+      "category": "metal_nut",
+      "aupru": 0.9426392091310047,
+      "aupru_01": 0.8629634412585541,
+      "pro_at_005": 0.9242607085247281,
+      "pro_at_01": 0.9614074900357807,
+      "pixel_auroc": 0.9719978313975028,
+      "n_regions": 136,
+      "n_images": 115
+    }
+  ],
+  "images": [
+    {
+      "category": "metal_nut",
+      "images": 115,
+      "missing_masks": 0,
+      "total": 115,
+      "defect_images": 93
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/12_metal_nut_seed_001/pixel_dumps"
+  }
+}

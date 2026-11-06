@@ -52,6 +52,6 @@
     "connectivity": 4,
     "weight": "每个 GT 连通域等权（官方口径）",
     "upsample": "双线性 patch->原图",
-    "dumps": "experiment_data/06_optimization/10_pair/screw_12_seed_000/pixel_dumps"
+    "dumps": "experiment_data/06_optimization/10_pair/12_screw_seed_000/pixel_dumps"
   }
 }

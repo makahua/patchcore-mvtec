@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.879974396930035,
+  "aupru_std": 0.0,
+  "aupru_min": 0.879974396930035,
+  "aupru_max": 0.879974396930035,
+  "worst": [
+    {
+      "category": "cable",
+      "aupru": 0.879974396930035,
+      "aupru_01": 0.7577351739766943,
+      "pro_at_005": 0.8191785566041873,
+      "pro_at_01": 0.880130319637874,
+      "pixel_auroc": 0.9451361720132827,
+      "n_regions": 163,
+      "n_images": 150
+    }
+  ],
+  "pooled": {
+    "aupru": 0.879974396930035,
+    "aupru_01": 0.7577351739766943,
+    "pro_at_005": 0.8191785566041873,
+    "pro_at_01": 0.880130319637874,
+    "n_regions": 163,
+    "n_images": 150
+  },
+  "per_class": [
+    {
+      "category": "cable",
+      "aupru": 0.879974396930035,
+      "aupru_01": 0.7577351739766943,
+      "pro_at_005": 0.8191785566041873,
+      "pro_at_01": 0.880130319637874,
+      "pixel_auroc": 0.9451361720132827,
+      "n_regions": 163,
+      "n_images": 150
+    }
+  ],
+  "images": [
+    {
+      "category": "cable",
+      "images": 150,
+      "missing_masks": 0,
+      "total": 150,
+      "defect_images": 92
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/12_cable_seed_002/pixel_dumps"
+  }
+}

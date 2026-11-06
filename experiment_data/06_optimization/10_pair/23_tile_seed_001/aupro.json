@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.8155637269775237,
+  "aupru_std": 0.0,
+  "aupru_min": 0.8155637269775237,
+  "aupru_max": 0.8155637269775237,
+  "worst": [
+    {
+      "category": "tile",
+      "aupru": 0.8155637269775237,
+      "aupru_01": 0.5992926504178031,
+      "pro_at_005": 0.646569300329303,
+      "pro_at_01": 0.8766177962842022,
+      "pixel_auroc": 0.9197029293842571,
+      "n_regions": 89,
+      "n_images": 117
+    }
+  ],
+  "pooled": {
+    "aupru": 0.8155637269775237,
+    "aupru_01": 0.5992926504178031,
+    "pro_at_005": 0.646569300329303,
+    "pro_at_01": 0.8766177962842022,
+    "n_regions": 89,
+    "n_images": 117
+  },
+  "per_class": [
+    {
+      "category": "tile",
+      "aupru": 0.8155637269775237,
+      "aupru_01": 0.5992926504178031,
+      "pro_at_005": 0.646569300329303,
+      "pro_at_01": 0.8766177962842022,
+      "pixel_auroc": 0.9197029293842571,
+      "n_regions": 89,
+      "n_images": 117
+    }
+  ],
+  "images": [
+    {
+      "category": "tile",
+      "images": 117,
+      "missing_masks": 0,
+      "total": 117,
+      "defect_images": 84
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "experiment_data/06_optimization/10_pair/23_tile_seed_001/pixel_dumps"
+  }
+}

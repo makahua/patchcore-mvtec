@@ -1,0 +1,168 @@
+{
+  "root": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\10_pair",
+  "baseline": "23",
+  "candidate": "12",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "categories": [
+    "bottle",
+    "cable",
+    "capsule",
+    "carpet",
+    "grid",
+    "hazelnut",
+    "leather",
+    "metal_nut",
+    "pill",
+    "screw",
+    "tile",
+    "toothbrush",
+    "transistor",
+    "wood",
+    "zipper"
+  ],
+  "per_seed": {
+    "0": {
+      "image": 0.9789066666666667,
+      "pixel": 0.97092,
+      "aupro": 0.920088655274746,
+      "latency": 23.764
+    },
+    "1": {
+      "image": 0.9801733333333333,
+      "pixel": 0.97176,
+      "aupro": 0.921920461527306,
+      "latency": 20.358666666666668
+    },
+    "2": {
+      "image": 0.9782466666666667,
+      "pixel": 0.9707266666666666,
+      "aupro": 0.9189749104034498,
+      "latency": 20.423333333333336
+    }
+  },
+  "paired": {
+    "image": [
+      0.0026733333333333054,
+      0.0030733333333332613,
+      0.0035133333333332573
+    ],
+    "pixel": [
+      -0.01429333333333338,
+      -0.01313333333333322,
+      -0.011086666666666578
+    ],
+    "aupro": [
+      -0.0013420375948203223,
+      3.124584736713398e-05,
+      0.003567759737345799
+    ]
+  },
+  "per_class_degrade": [
+    {
+      "category": "cable",
+      "d_image": -0.049966666666666715,
+      "d_aupro": -0.04669138581634502
+    },
+    {
+      "category": "carpet",
+      "d_image": -0.031466666666666754,
+      "d_aupro": 0.0017567795429348498
+    },
+    {
+      "category": "transistor",
+      "d_image": -0.017933333333333246,
+      "d_aupro": -0.23077491683126883
+    },
+    {
+      "category": "tile",
+      "d_image": -0.012266666666666648,
+      "d_aupro": 0.011999823271910959
+    },
+    {
+      "category": "bottle",
+      "d_image": -0.0015999999999999348,
+      "d_aupro": 0.01423550018753783
+    },
+    {
+      "category": "leather",
+      "d_image": -0.0013333333333332975,
+      "d_aupro": 0.010825009687469023
+    },
+    {
+      "category": "hazelnut",
+      "d_image": 0.00023333333333341866,
+      "d_aupro": 0.016739167431610413
+    },
+    {
+      "category": "metal_nut",
+      "d_image": 0.0005333333333334966,
+      "d_aupro": -0.00012502917368373279
+    },
+    {
+      "category": "wood",
+      "d_image": 0.0044000000000000705,
+      "d_aupro": 0.046080298332812686
+    },
+    {
+      "category": "capsule",
+      "d_image": 0.008100000000000107,
+      "d_aupro": 0.015757428276951146
+    },
+    {
+      "category": "pill",
+      "d_image": 0.010366666666666635,
+      "d_aupro": 0.01543075151903639
+    },
+    {
+      "category": "zipper",
+      "d_image": 0.025033333333333352,
+      "d_aupro": 0.031833021177868126
+    },
+    {
+      "category": "grid",
+      "d_image": 0.029233333333333333,
+      "d_aupro": 0.0689356125558358
+    },
+    {
+      "category": "toothbrush",
+      "d_image": 0.032366666666666655,
+      "d_aupro": 0.0322428501025287
+    },
+    {
+      "category": "screw",
+      "d_image": 0.05059999999999987,
+      "d_aupro": 0.023039929684263938
+    }
+  ],
+  "gates": [
+    {
+      "name": "完整性：两组各 15 类 × 3 seed",
+      "passed": true,
+      "detail": "类别 15，共同 seed 3"
+    },
+    {
+      "name": "总体质量：macro image AUROC 配对均值差 ≥ 0",
+      "passed": true,
+      "detail": "+0.0031"
+    },
+    {
+      "name": "总体质量：macro AUPRO@30 配对均值差 ≥ 0",
+      "passed": true,
+      "detail": "+0.0008"
+    },
+    {
+      "name": "单类退化：任一类三 seed 平均下降 ≤ 0.03",
+      "passed": false,
+      "detail": "最差 Δimage -0.0500"
+    },
+    {
+      "name": "算法时延：15 类均值 ≤ 25.0 ms",
+      "passed": true,
+      "detail": "24.60 ms"
+    }
+  ]
+}
