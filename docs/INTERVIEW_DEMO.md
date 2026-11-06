@@ -6,7 +6,7 @@
 
 ## 准备
 
-当前工作区已有 `experiment_data/04_memory_banks/banks/bottle.npz`、权重文件和 MVTec 图像。桌面演示需要 `.venv` 中的 PyTorch、torchvision、Pillow 和 PyQt5。
+当前工作区已有协议内记忆库 `experiment_data/06_optimization/10_pair/23_bottle_seed_000/banks/bottle.npz`（2+3 / 1536 维 / thr_ok 39.21）、权重文件和 MVTec 图像。旧库 `experiment_data/04_memory_banks/banks/bottle.npz` 是早期 P99 口径（thr_ok 39.94），仍可演示但数字不同。桌面演示需要 `.venv` 中的 PyTorch、torchvision、Pillow 和 PyQt5。
 
 启动界面：
 
@@ -17,11 +17,11 @@ cd E:\面试项目文件夹\patchcore-mvtec
 
 界面中选择：
 
-- 记忆库：`experiment_data/04_memory_banks/banks/bottle.npz`
+- 记忆库：`experiment_data/06_optimization/10_pair/23_bottle_seed_000/banks/bottle.npz`
 - 权重：`torch_cache/wide_resnet50_2_timm.pth`
 - 图片：`MVTec/mvtech_anomaly_detection/bottle/test/broken_large/000.png`
 
-预期显示 NG、异常分数约 59.66、阈值约 OK≤39.94 / NG≥40.95，以及热力图。CLI 输出保存在 `experiment_data/06_demo_outputs/demo_out_interview/`。分数会因设备、依赖版本和计时环境有轻微差异。
+预期显示 NG、异常分数约 59.5、阈值 OK≤39.21 / NG≥47.06（灰区 ×1.2），以及热力图。CLI 输出保存在 `experiment_data/06_optimization/13_demo/`。分数会因设备、依赖版本和计时环境有轻微差异（±1%）。
 
 ## 命令行备用演示
 
@@ -29,13 +29,13 @@ cd E:\面试项目文件夹\patchcore-mvtec
 
 ```powershell
 .\.venv\Scripts\python.exe classify.py infer `
-  --bank experiment_data/04_memory_banks/banks/bottle.npz `
+  --bank experiment_data/06_optimization/10_pair/23_bottle_seed_000/banks/bottle.npz `
   --image MVTec/mvtech_anomaly_detection/bottle/test/broken_large/000.png `
   --weights torch_cache/wide_resnet50_2_timm.pth `
-  --out experiment_data/06_demo_outputs/demo_out_interview
+  --out experiment_data/06_optimization/13_demo
 ```
 
-本轮已验证该命令输出 NG，结果图为 `experiment_data/06_demo_outputs/demo_out_interview/broken_large_000_NG_59.7.png`。也已用 Qt offscreen 驱动界面中的异步推理路径，确认能完成并显示热力图。
+本轮已验证该命令输出 NG（分数 59.54，阈值 39.21 / 47.06），结果图在 `experiment_data/06_optimization/13_demo/`（目录已 gitignore，可复算）。也已用 Qt offscreen 驱动界面中的异步推理路径，确认能完成并显示热力图。
 
 ## 面试讲解顺序
 
