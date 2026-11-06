@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 220.707,
+  "per_category": [
+    {
+      "category": "pill",
+      "latency_ms": 18.63,
+      "latency_p95_ms": 18.99,
+      "build_seconds": 145.4,
+      "peak_gpu_mb": 190.0,
+      "peak_cpu_mb": 4604.8,
+      "bank_file": "banks\\pill.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

@@ -439,6 +439,73 @@ def patch_scores_batch(model, mem, xs, device, neighbors=False, score_agg='max',
                                 neighbor_pad, fp16) for k in range(feat.shape[0])]
 
 
+SUITE_CONDITIONS = (('clean', 1.0, 0.0, 0.0), ('bright08', 0.8, 0.0, 0.0),
+                    ('noise005', 1.0, 0.05, 0.0), ('noise010', 1.0, 0.10, 0.0),
+                    ('blur1', 1.0, 0.0, 1.0))
+
+
+def mask_for(path, label, test_dir, gt_dir, hw, args):
+    """取 GT 掩码并降采样到 patch 网格（几何变换与图像保持一致）。"""
+    mask = None
+    if label == 1:
+        rel = os.path.relpath(path, test_dir)
+        m = os.path.join(gt_dir, os.path.splitext(rel)[0] + '_mask.png')
+        if not os.path.exists(m):
+            m = os.path.join(gt_dir, os.path.dirname(rel),
+                             os.path.splitext(os.path.basename(rel))[0] + '.png')
+        if os.path.exists(m):
+            if args.aspect_crop > 0 or args.preprocess != 'stretch':
+                mimg = load_mask(m, args.size, args.preprocess, args.aspect_crop)
+                mask = np.asarray(mimg.resize((hw, hw), Image.NEAREST)) > 128
+            else:
+                mask = np.asarray(Image.open(m).convert('L').resize((hw, hw), Image.NEAREST)) > 128
+    if mask is None:
+        mask = np.zeros((hw, hw), bool)
+    return mask
+
+
+def _patch_map(model, mem, x, args, device, dtype):
+    patch, _ = patch_scores(model, mem, x, device, args.neighbors, args.score_agg,
+                            args.blur_sigma, args.neighbor_pad, fp16=args.fp16)
+    return patch.detach().cpu().numpy().astype(dtype)
+
+
+def dump_suite(args, model, mem, device, cat, score_src, test_imgs, test_dir, gt_dir, dtype):
+    """同一记忆库、五组条件各存一份 calib/test 分数图，供离线比较聚合。"""
+    os.makedirs(args.dump_suite, exist_ok=True)
+    dname = 'float32' if dtype is np.float32 else 'float16'
+    labels = np.array([0 if os.path.basename(os.path.dirname(p)) == 'good' else 1 for p in test_imgs], np.int8)
+    rels = np.array([rel_path(p, args.data, cat) for p in test_imgs])
+    masks = None
+    for ci, (name, bright, noise, blur) in enumerate(SUITE_CONDITIONS):
+        base_seed = args.seed * 1000 + ci * 777
+        cals, tests = [], []
+        for i, p in enumerate(score_src):
+            x = load_img(p, args.size, args.preprocess, args.aspect_crop)
+            if bright != 1.0 or noise or blur:
+                x = perturb_img(x, bright, noise, blur, base_seed + i)
+            cals.append(_patch_map(model, mem, x, args, device, dtype))
+        for i, p in enumerate(test_imgs):
+            x = load_img(p, args.size, args.preprocess, args.aspect_crop)
+            if bright != 1.0 or noise or blur:
+                x = perturb_img(x, bright, noise, blur, base_seed + 100000 + i)
+            tests.append(_patch_map(model, mem, x, args, device, dtype))
+        if masks is None:
+            hw = cals[0].shape[-1]
+            masks = np.stack([mask_for(p, int(l), test_dir, gt_dir, hw, args)
+                              for p, l in zip(test_imgs, labels)])
+        common = dict(thr_pct=np.float32(args.thr_pct), size=np.int32(args.size),
+                      dtype=np.array(dname), condition=np.array(name))
+        np.savez_compressed(os.path.join(args.dump_suite, f'{cat}_{name}_calib.npz'),
+                            scores=np.stack(cals), labels=np.zeros(len(cals), np.int8),
+                            paths=np.array([rel_path(p, args.data, cat) for p in score_src]),
+                            **common)
+        np.savez_compressed(os.path.join(args.dump_suite, f'{cat}_{name}_test.npz'),
+                            scores=np.stack(tests), masks=masks, labels=labels, paths=rels,
+                            **common)
+        print(f'[suite] {cat} {name}: calib {len(cals)} / test {len(tests)} 张 → {args.dump_suite}')
+
+
 def run_category(args, cat, device):
     root = os.path.join(args.data, cat)
     train_dir = os.path.join(root, 'train', 'good')
@@ -536,16 +603,30 @@ def run_category(args, cat, device):
     # 2) 阈值标定：优先用留出的 calib 图（未参与建库），否则退回建库图自评分
     score_src = calib_imgs if calib_imgs else train_imgs
     train_scores = []
+    dump_dtype = np.float32 if getattr(args, 'dump_dtype', 'float16') == 'float32' else np.float16
+    cal_px = []
     for i, p in enumerate(score_src):
         x_cal = load_img(p, args.size, args.preprocess, args.aspect_crop)
         if args.perturb_calibration:
             x_cal = perturb_img(x_cal, args.perturb_brightness, args.perturb_noise,
                                 args.perturb_blur, args.seed + i)
-        _, s = patch_scores(model, mem, x_cal, device,
-                            args.neighbors, args.score_agg, args.blur_sigma, args.neighbor_pad,
-                            fp16=args.fp16)
+        patch_c, s = patch_scores(model, mem, x_cal, device,
+                                  args.neighbors, args.score_agg, args.blur_sigma, args.neighbor_pad,
+                                  fp16=args.fp16)
         train_scores.append(s)
+        if args.dump_calib:
+            cal_px.append(patch_c.detach().cpu().numpy().astype(dump_dtype))
     thr = float(np.percentile(train_scores, args.thr_pct))
+    if args.dump_calib:
+        os.makedirs(args.dump_calib, exist_ok=True)
+        fp_cal = os.path.join(args.dump_calib, f'{cat}.npz')
+        np.savez_compressed(fp_cal, scores=np.stack(cal_px),
+                            paths=np.array([rel_path(p, args.data, cat) for p in score_src]),
+                            labels=np.zeros(len(cal_px), np.int8), source=np.array('calibration'),
+                            thr=np.float32(thr), thr_pct=np.float32(args.thr_pct),
+                            size=np.int32(args.size),
+                            dtype=np.array('float32' if dump_dtype is np.float32 else 'float16'))
+        print(f'[calib-dump] 标定分数图 {len(cal_px)} 张 → {fp_cal}')
 
     # 3) 测试集评分
     y, score, px_true, px_score = [], [], [], []
@@ -578,28 +659,11 @@ def run_category(args, cat, device):
             # 像素级标注：先把掩码统一取出来，缺掩码时用全零（既包含良品，也容忍个别缺文件的缺陷图），
             # 这样 px_true/px_score 与 --dump-pixel 的下标永远对得上。
             hw = patch.shape[-1]
-            mask = None
-            if label == 1:
-                rel = os.path.relpath(p, test_dir)
-                m = os.path.join(gt_dir, os.path.splitext(rel)[0] + '_mask.png')
-                # VisA's official 1-class preparation stores masks as
-                # ground_truth/bad/<image-stem>.png (without the MVTec suffix).
-                if not os.path.exists(m):
-                    m = os.path.join(gt_dir, os.path.dirname(rel),
-                                     os.path.splitext(os.path.basename(rel))[0] + '.png')
-                if os.path.exists(m):
-                    if args.aspect_crop > 0 or args.preprocess != 'stretch':
-                        # 几何变换必须和图像一致，否则 pixel AUROC 的绝对值不可用
-                        mimg = load_mask(m, args.size, args.preprocess, args.aspect_crop)
-                        mask = np.asarray(mimg.resize((hw, hw), Image.NEAREST)) > 128
-                    else:
-                        mask = np.asarray(Image.open(m).convert('L').resize((hw, hw), Image.NEAREST)) > 128
-            if mask is None:
-                mask = np.zeros((hw, hw), bool)
+            mask = mask_for(p, label, test_dir, gt_dir, hw, args)
             px_true.append(mask.reshape(-1))
             px_score.append(patch.detach().cpu().numpy().reshape(-1))
             if args.dump_pixel:
-                dump_px.append(patch.detach().cpu().numpy().astype(np.float16))
+                dump_px.append(patch.detach().cpu().numpy().astype(dump_dtype))
                 dump_mask.append(mask)
                 dump_path.append(os.path.relpath(p, test_dir))
 
@@ -613,13 +677,17 @@ def run_category(args, cat, device):
     rec = tp / max(1, tp + fn)
     fpr = fp / max(1, fp + sum(1 for a, b in zip(pred, y) if a == 0 and b == 0))
 
+    if args.dump_suite:
+        dump_suite(args, model, mem, device, cat, score_src, test_imgs, test_dir, gt_dir, dump_dtype)
+
     # 4) 存热力图（分数最高的 3 张）
     if args.dump_pixel:
         os.makedirs(args.dump_pixel, exist_ok=True)
         fp = os.path.join(args.dump_pixel, f'{cat}.npz')
         np.savez_compressed(fp, scores=np.stack(dump_px), masks=np.stack(dump_mask),
                             paths=np.array(dump_path), labels=np.array(y), thr=np.float32(thr),
-                            size=np.int32(args.size))
+                            size=np.int32(args.size),
+                            dtype=np.array('float32' if dump_dtype is np.float32 else 'float16'))
         print(f'[dump] 像素分数图 {len(dump_px)} 张 → {fp}')
 
     os.makedirs(os.path.join(args.out, 'heatmaps'), exist_ok=True)
@@ -737,6 +805,12 @@ def main():
                     help='评测图像高斯噪声标准差（像素范围 0..1）；默认 0')
     ap.add_argument('--perturb-blur', type=float, default=0.0,
                     help='评测图像高斯模糊 sigma（像素）；默认 0')
+    ap.add_argument('--dump-calib', default=None, metavar='DIR',
+                    help='把 calibration 良品的 patch 分数图存成 npz（离线比较聚合用）')
+    ap.add_argument('--dump-dtype', choices=['float16', 'float32'], default='float16',
+                    help='--dump-pixel/--dump-calib/--dump-suite 的存储精度；聚合对比建议 float32')
+    ap.add_argument('--dump-suite', default=None, metavar='DIR',
+                    help='同一记忆库对 5 组条件（干净/亮度/噪声 0.05/0.10/模糊）各存 calib+test 分数图')
     ap.add_argument('--perturb-calibration', action='store_true',
                     help='对 calibration 良品使用同一扰动重新标定；默认冻结干净阈值')
     ap.add_argument('--limit', type=int, default=0, help='每类只用前 N 张图做冒烟测试')

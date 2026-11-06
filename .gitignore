@@ -53,3 +53,4 @@ experiment_data/05_indexes/pixel_dumps/
 experiment_data/_tmp*/
 experiment_data/06_optimization/**/pixel_dumps/
 experiment_data/06_optimization/**/banks/
+experiment_data/06_optimization/**/suite/

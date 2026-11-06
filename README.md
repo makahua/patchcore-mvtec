@@ -141,11 +141,11 @@ patchcore-mvtec/
   analyze.py           # 批量结果对照；pyqt_demo.py 单图 GUI
   tools/               # pro_aupro / latency_breakdown / conformal_threshold / check_links / 数据准备
   tests/               # 23 条纯 numpy 测试（15 指标+成本、8 PRO/AUPRO）
-  docs/                # 21 篇方法与实验文档 + pair-baseline.json（主表数字）
+  docs/                # 22 篇方法与实验文档 + pair-baseline.json（主表数字）
   experiment_data/     # 结果索引（大文件由 .gitignore 排除）
 ```
 
-文档索引：[vs-upstream](docs/vs-upstream.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[基线验收](docs/baseline-acceptance.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)｜[特征层消融](docs/features-ablation.md)｜[成本模型](docs/cost-model.md)｜[PRO/AUPRO](docs/pro-aupro.md)｜[时延拆解](docs/latency-breakdown.md)｜[端到端上限估算](docs/e2e-ceiling.md)｜[鲁棒性](docs/robustness.md)｜[预处理对照](docs/preprocessing-ablation.md)｜[邻域填充](docs/neighbor-ablation.md)｜[面试笔记](docs/interview-notes.md)。
+文档索引：[vs-upstream](docs/vs-upstream.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[基线验收](docs/baseline-acceptance.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)｜[特征层消融](docs/features-ablation.md)｜[成本模型](docs/cost-model.md)｜[PRO/AUPRO](docs/pro-aupro.md)｜[时延拆解](docs/latency-breakdown.md)｜[端到端上限估算](docs/e2e-ceiling.md)｜[鲁棒性](docs/robustness.md)｜[预处理对照](docs/preprocessing-ablation.md)｜[邻域填充](docs/neighbor-ablation.md)｜[鲁棒聚合](docs/robust-aggregation.md)｜[面试笔记](docs/interview-notes.md)。
 
 ## 许可
 
