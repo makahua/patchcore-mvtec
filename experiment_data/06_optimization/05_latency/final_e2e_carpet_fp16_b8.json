@@ -1,0 +1,32 @@
+{
+  "category": "carpet",
+  "size": 320,
+  "mem_patches": 2000,
+  "n": 150,
+  "warmup": 10,
+  "workers": 4,
+  "depth": 8,
+  "batch": 8,
+  "fp16": true,
+  "device": "cuda",
+  "mode": "performance only; fixed bottle bank",
+  "sequential": {
+    "throughput_ips": 21.93,
+    "total_p50_ms": 44.82,
+    "total_p95_ms": 53.4,
+    "gpu_p50_ms": 10.14,
+    "cpu_p50_ms": 34.93,
+    "wall_s": 6.84
+  },
+  "prefetch": {
+    "throughput_ips": 85.57,
+    "resident_p50_ms": 163.26,
+    "resident_p95_ms": 205.15,
+    "queue_p50_ms": 42.97,
+    "gpu_p50_ms": 9.31,
+    "wall_s": 1.75
+  },
+  "speedup": 3.902,
+  "score_max_abs_diff_sampled": 0.009048,
+  "peak_gpu_mb": 344.5
+}

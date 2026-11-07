@@ -59,21 +59,27 @@ def main():
     import patchcore_demo as P
     from PIL import Image
 
+    import classify as C
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    t0 = time.perf_counter()
-    model = P.Features(weights_path=weights_path(), imagenet_norm=False).to(device).eval()
-    t_model = time.perf_counter() - t0
 
     t0 = time.perf_counter()
     z = np.load(a.bank, allow_pickle=True)
-    meta = json.loads(str(z['meta']))
-    mem = torch.from_numpy(z['bank']).to(device)
+    meta = C._meta_from_npz(z, a.bank)
+    key = 'bank' if 'bank' in z.files else 'mem'
+    mem = torch.from_numpy(z[key]).float().to(device)
     t_bank = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    model = P.Features(weights_path=weights_path(), imagenet_norm=bool(meta.get('imagenet_norm', False)),
+                       layers=str(meta.get('layers', '2+3'))).to(device).eval()
+    t_model = time.perf_counter() - t0
 
     size = int(meta.get('size', 320))
     neighbors = bool(meta.get('neighbors', False))
     agg = meta.get('score_agg', 'max')
     sigma = float(meta.get('blur_sigma', 2.0))
+    pad = str(meta.get('neighbor_pad', 'zero'))
     thr_ok = float(meta.get('thr_ok', 0.0))
 
     paths = sorted(glob.glob(os.path.join(a.data, a.category, 'test', '**', '*.png'), recursive=True))
@@ -86,7 +92,7 @@ def main():
         """返回 batch 内逐张分数（batch>1 时 embed 给 (B, N, C)，逐张聚合）。"""
         with torch.no_grad():
             feat = model(x)
-            emb, (h, w) = P.embed(feat, neighbors)
+            emb, (h, w) = P.embed(feat, neighbors, pad)
             b, n, c = emb.shape
             flat = emb.reshape(b * n, c)
             mins = []
@@ -134,7 +140,7 @@ def main():
         s['forward'] = time.perf_counter() - t
         t = time.perf_counter()
         with torch.no_grad():
-            emb, (h, w) = P.embed(feat, neighbors)
+            emb, (h, w) = P.embed(feat, neighbors, pad)
             emb = emb.squeeze(0)
             if device.type == 'cuda':
                 torch.cuda.synchronize()

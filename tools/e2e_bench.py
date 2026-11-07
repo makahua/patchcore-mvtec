@@ -64,15 +64,20 @@ def main():
     import patchcore_demo as P
     from PIL import Image
 
+    import classify as C
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = P.Features(weights_path=weights_path(), imagenet_norm=False).to(device).eval()
     z = np.load(a.bank, allow_pickle=True)
-    meta = json.loads(str(z["meta"]))
-    mem = torch.from_numpy(z["bank"]).to(device)
+    meta = C._meta_from_npz(z, a.bank)
+    key = "bank" if "bank" in z.files else "mem"
+    mem = torch.from_numpy(z[key]).float().to(device)
+    model = P.Features(weights_path=weights_path(), imagenet_norm=bool(meta.get("imagenet_norm", False)),
+                       layers=str(meta.get("layers", "2+3"))).to(device).eval()
     size = int(meta.get("size", 320))
     neighbors = bool(meta.get("neighbors", False))
     sigma = float(meta.get("blur_sigma", 2.0))
     agg = meta.get("score_agg", "max")
+    pad = str(meta.get("neighbor_pad", "zero"))
 
     paths = sorted(glob.glob(os.path.join(a.data, a.category, "test", "**", "*.png"), recursive=True))
     if not paths:
@@ -95,7 +100,7 @@ def main():
     mem_h = mem.half() if a.fp16 else mem
 
     def score_one(feat):
-        emb, (h, w) = P.embed(feat, neighbors)
+        emb, (h, w) = P.embed(feat, neighbors, pad)
         emb = emb.squeeze(0)
         mins = []
         for i in range(0, emb.shape[0], 2048):
