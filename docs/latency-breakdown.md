@@ -35,6 +35,9 @@
 
 ### 2.1 35.5 ms 与 42.2 ms 是同一协议的两次测量（口径裁定）
 
+> 2026-11-08 用最终库重测：900² **39.7 ms**（区间 35.5–42.2）、1024² **64.9 ms**、700² 40.9 ms；
+> 明细见 `experiment_data/06_optimization/05_latency/README.md` 的「最终配置复测」一节。
+
 同一个 `tools/latency_breakdown.py`、同一个 bottle 记忆库（2000×1536）、同一个 `size=320`，先后得到两个端到端数：
 
 | 测量 | 端到端 p50 | read | decode | resize | forward | h2d+embed+nn+post | GPU 段合计 |
