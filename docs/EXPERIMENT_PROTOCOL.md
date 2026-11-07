@@ -64,6 +64,7 @@ P99.5 是可计算的经验分位，但现有标定样本量不足以提供 0.5%
 - `tools/pair_stats.py --root <目录> --baseline 23 --candidate 12`：逐 seed macro、均值±std、配对差、单类退化、三档判定与门槛表。
 - `tools/pro_aupro.py --dumps <run>/pixel_dumps ...`：区域级 PRO/AUPRO。
 - `tools/summarize_features.py` / `tools/summarize_runs.py`：只读汇总。
+- `tools/export_thresholds.py`：从 10_pair 汇总逐类 `thr_ok`/`thr_ng` 到 `docs/thresholds.json`，`--check` 供 CI 校验；阈值与类别绑定，不可跨类或跨权重迁移。
 
 旧结果可用 `--package-existing` 补生成标准产物，不会重跑模型。`per_image.csv` 标记 held-out calibration、train self-score fallback 和 test，不能把 fallback 自评分误认为留出 calibration。
 

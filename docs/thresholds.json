@@ -1,0 +1,350 @@
+{
+  "protocol": {
+    "layers": "2+3",
+    "size": 320,
+    "thr_pct": 99.5,
+    "ng_ratio": 1.2,
+    "calib_ratio": 0.3,
+    "split_seed": 42,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "weights": "wide_resnet50_2_timm.pth (timm racm_in1k)",
+    "dataset_role": "MVTec AD, development only (test seen many times)"
+  },
+  "note": "thr_ok = 每类留出良品的 P99.5 分位；thr_ng = thr_ok x 1.2。阈值与类别绑定，不可跨类或跨权重迁移；0.5% 名义过杀在 18-117 张标定下不可达（conformal 15/15 类不达标）。",
+  "classes": [
+    {
+      "category": "bottle",
+      "n_calib": 62,
+      "n_test": 83,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        39.2134,
+        40.1377,
+        39.6707
+      ],
+      "thr_ok_mean": 39.6739,
+      "thr_ok_std": 0.4622,
+      "thr_ng_mean": 47.6087,
+      "recall_mean": 0.9577,
+      "fpr_mean": 0.0,
+      "img_auroc_mean": 1.0,
+      "pixel_auroc_mean": 0.9855
+    },
+    {
+      "category": "cable",
+      "n_calib": 67,
+      "n_test": 150,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        48.0216,
+        47.2108,
+        47.2449
+      ],
+      "thr_ok_mean": 47.4924,
+      "thr_ok_std": 0.4586,
+      "thr_ng_mean": 56.9909,
+      "recall_mean": 0.8152,
+      "fpr_mean": 0.0172,
+      "img_auroc_mean": 0.9856,
+      "pixel_auroc_mean": 0.9804
+    },
+    {
+      "category": "capsule",
+      "n_calib": 65,
+      "n_test": 132,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        38.4408,
+        39.4014,
+        39.9283
+      ],
+      "thr_ok_mean": 39.2568,
+      "thr_ok_std": 0.7542,
+      "thr_ng_mean": 47.1082,
+      "recall_mean": 0.4312,
+      "fpr_mean": 0.0,
+      "img_auroc_mean": 0.9823,
+      "pixel_auroc_mean": 0.989
+    },
+    {
+      "category": "carpet",
+      "n_calib": 84,
+      "n_test": 117,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        35.8344,
+        35.1537,
+        35.2889
+      ],
+      "thr_ok_mean": 35.4257,
+      "thr_ok_std": 0.3604,
+      "thr_ng_mean": 42.5108,
+      "recall_mean": 0.9251,
+      "fpr_mean": 0.0357,
+      "img_auroc_mean": 0.9845,
+      "pixel_auroc_mean": 0.9859
+    },
+    {
+      "category": "grid",
+      "n_calib": 79,
+      "n_test": 78,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        36.0933,
+        35.4392,
+        35.7113
+      ],
+      "thr_ok_mean": 35.7479,
+      "thr_ok_std": 0.3286,
+      "thr_ng_mean": 42.8975,
+      "recall_mean": 0.9123,
+      "fpr_mean": 0.0159,
+      "img_auroc_mean": 0.9708,
+      "pixel_auroc_mean": 0.9586
+    },
+    {
+      "category": "hazelnut",
+      "n_calib": 117,
+      "n_test": 110,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        50.7478,
+        51.9855,
+        52.4633
+      ],
+      "thr_ok_mean": 51.7322,
+      "thr_ok_std": 0.8854,
+      "thr_ng_mean": 62.0786,
+      "recall_mean": 0.9762,
+      "fpr_mean": 0.0,
+      "img_auroc_mean": 0.9998,
+      "pixel_auroc_mean": 0.9871
+    },
+    {
+      "category": "leather",
+      "n_calib": 73,
+      "n_test": 124,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        32.4492,
+        32.1087,
+        30.7208
+      ],
+      "thr_ok_mean": 31.7596,
+      "thr_ok_std": 0.9156,
+      "thr_ng_mean": 38.1115,
+      "recall_mean": 1.0,
+      "fpr_mean": 0.0313,
+      "img_auroc_mean": 1.0,
+      "pixel_auroc_mean": 0.9882
+    },
+    {
+      "category": "metal_nut",
+      "n_calib": 66,
+      "n_test": 115,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        43.9125,
+        43.4017,
+        44.3198
+      ],
+      "thr_ok_mean": 43.878,
+      "thr_ok_std": 0.46,
+      "thr_ng_mean": 52.6536,
+      "recall_mean": 0.9856,
+      "fpr_mean": 0.0303,
+      "img_auroc_mean": 0.9979,
+      "pixel_auroc_mean": 0.9832
+    },
+    {
+      "category": "pill",
+      "n_calib": 80,
+      "n_test": 167,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        41.9886,
+        42.0315,
+        41.2807
+      ],
+      "thr_ok_mean": 41.7669,
+      "thr_ok_std": 0.4216,
+      "thr_ng_mean": 50.1203,
+      "recall_mean": 0.6714,
+      "fpr_mean": 0.0,
+      "img_auroc_mean": 0.9519,
+      "pixel_auroc_mean": 0.9764
+    },
+    {
+      "category": "screw",
+      "n_calib": 96,
+      "n_test": 160,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        38.6231,
+        38.1125,
+        39.0825
+      ],
+      "thr_ok_mean": 38.606,
+      "thr_ok_std": 0.4852,
+      "thr_ng_mean": 46.3272,
+      "recall_mean": 0.6359,
+      "fpr_mean": 0.0325,
+      "img_auroc_mean": 0.9231,
+      "pixel_auroc_mean": 0.984
+    },
+    {
+      "category": "tile",
+      "n_calib": 69,
+      "n_test": 117,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        40.5777,
+        40.7841,
+        41.4687
+      ],
+      "thr_ok_mean": 40.9435,
+      "thr_ok_std": 0.4664,
+      "thr_ng_mean": 49.1322,
+      "recall_mean": 0.9643,
+      "fpr_mean": 0.0,
+      "img_auroc_mean": 1.0,
+      "pixel_auroc_mean": 0.9197
+    },
+    {
+      "category": "toothbrush",
+      "n_calib": 18,
+      "n_test": 42,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        34.9616,
+        34.4841,
+        34.8602
+      ],
+      "thr_ok_mean": 34.7686,
+      "thr_ok_std": 0.2516,
+      "thr_ng_mean": 41.7224,
+      "recall_mean": 0.9778,
+      "fpr_mean": 0.3055,
+      "img_auroc_mean": 0.9426,
+      "pixel_auroc_mean": 0.9903
+    },
+    {
+      "category": "transistor",
+      "n_calib": 63,
+      "n_test": 100,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        44.5524,
+        43.5633,
+        43.4719
+      ],
+      "thr_ok_mean": 43.8625,
+      "thr_ok_std": 0.5992,
+      "thr_ng_mean": 52.635,
+      "recall_mean": 0.9,
+      "fpr_mean": 0.0167,
+      "img_auroc_mean": 0.9958,
+      "pixel_auroc_mean": 0.948
+    },
+    {
+      "category": "wood",
+      "n_calib": 74,
+      "n_test": 79,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        41.4507,
+        40.7336,
+        41.6501
+      ],
+      "thr_ok_mean": 41.2781,
+      "thr_ok_std": 0.482,
+      "thr_ng_mean": 49.5338,
+      "recall_mean": 0.9667,
+      "fpr_mean": 0.1579,
+      "img_auroc_mean": 0.9866,
+      "pixel_auroc_mean": 0.9106
+    },
+    {
+      "category": "zipper",
+      "n_calib": 72,
+      "n_test": 151,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "thr_ok": [
+        35.7141,
+        34.9439,
+        35.4312
+      ],
+      "thr_ok_mean": 35.3631,
+      "thr_ok_std": 0.3896,
+      "thr_ng_mean": 42.4357,
+      "recall_mean": 0.8599,
+      "fpr_mean": 0.0625,
+      "img_auroc_mean": 0.9659,
+      "pixel_auroc_mean": 0.9801
+    }
+  ]
+}

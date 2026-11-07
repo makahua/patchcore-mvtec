@@ -53,6 +53,10 @@ jobs:
         # 三者必须一致，避免「文档写 A、仓库算出来 B」
         run: python tools/check_readme_numbers.py
 
+      - name: Thresholds table is up to date
+        # docs/thresholds.json 是逐类阈值的唯一来源；改了 run 没改表就让 CI 红
+        run: python tools/export_thresholds.py --check
+
   docs:
     name: docs link check
     runs-on: ubuntu-latest

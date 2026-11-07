@@ -80,6 +80,8 @@
 - 9 邻域修掉两处实现问题：`torch.roll` 的边界环绕（同预算 image AUROC +1.93 点）与选点顺序（`--neighbor-coreset base`：建库 194→22 s、候选池内存 2.1→0.24 GB，精度持平）；修完仍比不开差 0.34 点、时延 2.9×（52 vs 18 ms），默认关 → `docs/neighbor-ablation.md`。
 - 最终档最差三类：toothbrush 0.947 / screw 0.955 / pill 0.956。
 
+> **pooled 能不能当结论**：不能当主结论。15 类的分数尺度不同（同一阈值在 bottle 是 39、在 V1 权重下是 2），pooled 把不同尺度的分数混进同一个排序里，只能当「混合流/单类产线」的参考；主口径必须是 macro，且报告时要写清是哪一个。
+>
 > **口径**：上表是**旧 P99 表**——image AUROC 是 macro（15 类各算再平均），同一批分数 pooled 是 0.8812；新协议（P99.5、三 seed）对应 macro **0.9791** / pooled **0.8799**，两套不可相减。两个数都对，但对外必须写清是哪个——面试官拿仓库里的 scores 复算，写 0.98 得到 0.88 会当场翻车。
 
 ### 2) 阈值不是小事：从 28% 误报到可用工作点
@@ -91,6 +93,8 @@
 `thr_ok`（良品 P(1−fpr) 分位）与 `thr_ng`（×1.2）把画面分成 OK / REVIEW / NG；`--conformal` 换成有有限样本保证的分位——代价是 0.5% 需要 ≥199 张良品，本项目每类 18–117 张，**15 类全部不可达**（可达 0.85%–5.26%）。
 
 新协议（P99.5、灰区 1.2×、三 seed）：**漏检 16.9% ｜ 实际过杀 0.2% ｜ 复核 24.6%**（逐 seed 复核 24.1/24.6/25.0%）。旧 P99 协议下是漏检 20.0% / 复核 22.7%——阈值从 P99 抬到 P99.5 换回 3.1 个点漏检，代价是多送 1.9 个点去复核。最差 screw 漏检 73.1%（87/119，旧协议）。
+
+逐类的 `thr_ok` / `thr_ng` 与三 seed 波动见 [thresholds.json](docs/thresholds.json)——**阈值与类别绑定**，跨类或换权重都不能直接搬（`racm_in1k` → torchvision V1 时同一配置的阈值从 38.18 掉到 1.99）。
 
 成本模型（漏检:过杀:复核 = 100:10:1，缺陷先验 1%，用先验纠偏测试集 72.9% 的缺陷富集）：默认工作点 0.2206/件；validation 选 5%×1.5× → test **0.1814/件**（省 22%，漏检 6.9%，产线复核负荷 11.2%）。**最优工作点由先验决定，不由模型好坏决定。**
 
@@ -141,11 +145,11 @@ patchcore-mvtec/
   analyze.py           # 批量结果对照；pyqt_demo.py 单图 GUI
   tools/               # pro_aupro / latency_breakdown / conformal_threshold / check_links / 数据准备
   tests/               # 23 条纯 numpy 测试（15 指标+成本、8 PRO/AUPRO）
-  docs/                # 23 篇方法与实验文档 + pair-baseline.json（主表数字）
+  docs/                # 23 篇方法与实验文档 + pair-baseline.json（主表数字）+ thresholds.json（逐类阈值）
   experiment_data/     # 结果索引（大文件由 .gitignore 排除）
 ```
 
-文档索引：[vs-upstream](docs/vs-upstream.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[基线验收](docs/baseline-acceptance.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)｜[特征层消融](docs/features-ablation.md)｜[成本模型](docs/cost-model.md)｜[PRO/AUPRO](docs/pro-aupro.md)｜[时延拆解](docs/latency-breakdown.md)｜[端到端上限估算](docs/e2e-ceiling.md)｜[鲁棒性](docs/robustness.md)｜[预处理对照](docs/preprocessing-ablation.md)｜[邻域填充](docs/neighbor-ablation.md)｜[鲁棒聚合](docs/robust-aggregation.md)｜[split 敏感性](docs/split-seed-check.md)｜[面试笔记](docs/interview-notes.md)。
+文档索引：[vs-upstream](docs/vs-upstream.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[基线验收](docs/baseline-acceptance.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)｜[特征层消融](docs/features-ablation.md)｜[成本模型](docs/cost-model.md)｜[PRO/AUPRO](docs/pro-aupro.md)｜[时延拆解](docs/latency-breakdown.md)｜[端到端上限估算](docs/e2e-ceiling.md)｜[鲁棒性](docs/robustness.md)｜[预处理对照](docs/preprocessing-ablation.md)｜[邻域填充](docs/neighbor-ablation.md)｜[鲁棒聚合](docs/robust-aggregation.md)｜[split 敏感性](docs/split-seed-check.md)｜[阈值表](docs/thresholds.json)｜[面试笔记](docs/interview-notes.md)。
 
 ## 许可
 
