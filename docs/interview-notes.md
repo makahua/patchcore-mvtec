@@ -21,16 +21,16 @@
 
 > **【工业质检】** MVTec AD 少样本无监督缺陷检测（PatchCore）　｜　个人项目　｜　2026.10　｜　代码开源（见 GitHub）
 > - **方法：** WideResNet50 的 layer2/layer3 特征融合出 /8 分辨率 patch 描述子，构建正常样本记忆库，测试时以最近邻距离作为异常分数；用高斯平滑抑制单点噪声，再做 image-level 判定。
-> - **工程：** 用随机抽样 / k-center 贪心两种 coreset 策略控制记忆库规模，把每类约 27 万 patch 压到 2,000（<1%），单张 20 ms（RTX 3050 Laptop）、显存 0.19 GB；同分辨率下比随机抽样快 42%、省一半显存且精度反高 0.7 点。
-> - **结果：** MVTec AD 15 类共 1,725 张测试图，image AUROC 0.980（15 类均值）、pixel AUROC 0.971、图像级 PR-AUC 0.993；自研 OK / 复检 / NG 三档判定（每类阈值由 18–117 张留出良品标定，名义目标过杀 0.5%）：当前测试划分观测到良品直接判废 0.2%、转复核 2.1%，缺陷漏检 20.0%、灰区再捞回 30%。这些低误报工作点来自小标定集，应作为探索性结果，不表述为产线保证。
+> - **工程：** 用随机抽样 / k-center 贪心两种 coreset 策略控制记忆库规模，把每类约 27 万 patch 压到 2,000（<1%），单张算法段 21.5 ms（RTX 3050 Laptop，15 类均值）、显存 0.19 GB；同预算下比随机抽样更稳（跨类 std 0.039→0.027）且显存少一个量级。
+> - **结果：** MVTec AD 15 类共 1,725 张测试图，image AUROC 0.979（15 类 macro，三 seed 均值 0.9791 ± 0.0010）、pixel AUROC 0.971、图像级 PR-AUC 0.993（0.9928）；自研 OK / 复检 / NG 三档判定（每类阈值由 18–117 张留出良品标定，主口径 P99.5 ≈ 名义过杀 0.5%）：当前测试划分观测到良品直接判废 0.2%、转复核 24.6%、缺陷漏检 16.9%。这些低误报工作点来自小标定集，应作为探索性结果，不表述为产线保证。
 
-（以上为**已跑出的真实版本**，简历里就是用这一版。注意第一句的 `0.980（15 类均值）` 是 macro 口径，
-括号不能省——省了就和 pooled 0.8812 打架，见上一节 ⚠ 提示。）
+（以上为**已跑出的真实版本**，简历里就是用这一版。注意 `0.979` 是 macro 口径，括号不能省——
+省了就和 pooled 0.8799 打架。旧 P99 单 seed 主表是 0.9805 / pooled 0.8812，两套不可相减。）
 
 **版式 B（2 行，版面紧张时）**
 
 > **【工业质检 · 无监督】** 少样本异常检测（PatchCore）　｜　个人项目　｜　【2026.xx】
-> - 基于 WideResNet 多尺度特征 + 正常样本记忆库的最近邻异常评分，MVTec AD 15 类平均 image AUROC【0.9xx】/ pixel AUROC【0.9xx】，单张【xx ms】；对比随机抽样与 k-center 贪心两种记忆库压缩策略对精度—显存的影响，阈值只由 good 样本分布确定（P【99】），漏检率【x%】、误报【x%】。
+> - 基于 WideResNet 多尺度特征 + 正常样本记忆库的最近邻异常评分，MVTec AD 15 类平均 image AUROC【0.9xx】/ pixel AUROC【0.9xx】，单张【xx ms】；对比随机抽样与 k-center 贪心两种记忆库压缩策略对精度—显存的影响，阈值只由 good 样本分布确定（P【99.5】），漏检率【x%】、误报【x%】。
 
 **照抄时改三处**：日期、AUROC 真值、耗时/显存真值。**没跑出真值就别把这行加上去。**
 
@@ -61,7 +61,7 @@
 1. **“为什么不直接训分类网络？”** —— 缺陷类型不可穷举、样本极少；无监督只用 good 样本，未知缺陷也能给分数。
 2. **“记忆库为什么不全存？”** —— patch 数量 = 图数 × H/8 × W/8，200 张图就 20 万 patch，检索和显存都撑不住；coreset 保留代表性 patch，精度损失很小。
 3. **“为什么要 3×3 邻域平均 / 高斯平滑？”** —— patch 级特征对微小位移敏感，邻域平均提升局部一致性，减少单点噪声造成的误报。
-4. **“阈值怎么定，为什么不用测试集？”** —— 产线拿不到缺陷样本；用 good 的分数分布取高分位（P99），再按漏检/过杀成本调整分位。
+4. **“阈值怎么定，为什么不用测试集？”** —— 产线拿不到缺陷样本；用留出良品的分数分布取高分位（主口径 P99.5 ≈ 名义 0.5% 过杀），再按漏检/过杀/复核成本调整分位，并用 bootstrap 报区间（0.5% 这档在 18–117 张标定下不可达，conformal 15/15 类都撑不起）。
 5. **“AUROC 高就能上线吗？”** —— 不能。要看固定阈值下的漏检率/过杀率、单张耗时是否匹配节拍、以及换批次/换光照后的稳定性。
 6. **“怎么和 Halcon 的方案比？”** —— Halcon 强在标定好、光照稳、缺陷形态已知的快速落地（模板匹配 + Blob + 卡尺）；无监督异常检测强在缺陷未知、样本少。产线上常常是「传统算子做定位和尺寸 + 异常检测做外观」，两者组合。
 
@@ -74,10 +74,10 @@
 
 | 想验证什么 | 要准备什么 | 命令 | 耗时 |
 |---|---|---|---|
-| 三档判定那 15 行 + 两个 AUC 口径 | **只要有 numpy** | `python classify.py report --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2` | 1 秒 |
-| 某类能跑到同样 AUROC | 数据集 + timm 权重 | `python patchcore_demo.py --data E:/MVTec --category bottle --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99 --weights torch_cache/wide_resnet50_2_timm.pth --out experiment_data/01_mvtec_gpu/runs/reproduce` | bottle 约 2–3 分钟（受设备负载影响） |
+| 三档判定那 15 行 + 两个 AUC 口径 | **只要有 numpy** | `python classify.py report --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2`（旧 P99 主表；新协议见 `docs/pair-baseline.json`） | 1 秒 |
+| 某类能跑到同样 AUROC | 数据集 + timm 权重 | `python patchcore_demo.py --data MVTec/mvtech_anomaly_detection --category bottle --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99.5 --split-seed 42 --seed 0 --weights torch_cache/wide_resnet50_2_timm.pth --out experiment_data/01_mvtec_gpu/runs/reproduce` | bottle 约 2–3 分钟（受设备负载影响） |
 
-> 第二条命令的预期值（bottle，RTX 3050 Laptop）：`img_auroc 1.0000 / pixel 0.9857 / threshold 37.9943 / mem 2000 / peak 188.7 MB`。
+> 第二条命令的预期值（bottle，RTX 3050 Laptop，P99.5）：`img_auroc 1.0000 / pixel 0.9856 / threshold 39.2134 / mem 2000 / peak 190.0 MB`。
 > 时延会在 17–24 ms 之间抖动（笔记本 GPU 动态频率），**别把时延当复现失败的判据，看 threshold 和 AUROC**。
 
 ## 进阶
@@ -100,7 +100,7 @@ CI 在 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)，每次 push /
 
 | job | 做什么 | 为什么这么设计 |
 |---|---|---|
-| `metrics`（py3.10 + 3.12） | 23 条测试（15 指标/记忆库/成本 + 8 PRO/AUPRO）+ `classify.py report` 冒烟，钉住 macro `0.9805` / pooled `0.8812` | **只装 numpy + pytest**，不装 torch——能在十几秒内跑完，且证明「核心指标不依赖深度学习框架」 |
+| `metrics`（py3.10 + 3.12） | 23 条测试（15 指标/记忆库/成本 + 8 PRO/AUPRO）+ `classify.py report` 冒烟 + `tools/check_readme_numbers.py`（README 数字必须与 90 run 基线一致，钉住 macro `0.9791` / pooled `0.8799`） | **只装 numpy + pytest**，不装 torch——能在十几秒内跑完，且证明「核心指标不依赖深度学习框架」 |
 | `docs` | `tools/check_links.py` 检查所有 md 的相对链接 | README 曾链到不存在的 `experiment_data/README.md`，这种断链只有点进去才发现 |
 
 本地跑不了 pytest 也不影响（开发机的 PyPI 可能被代理挡住）：`python tests/test_metrics.py` 自带运行器，同样 15/15；PRO 那组用 `python tests/test_pro.py`，8/8。

@@ -17,6 +17,12 @@ PAIR = os.path.join("experiment_data", "06_optimization", "10_pair")
 SLUG = "23"            # 默认配置：2+3
 TOL = 5e-4             # 4 位小数 + 均值取整
 
+# 换协议时最容易漏的地方：正文还在用旧数字。这里钉住「不许当成现役结论出现」的词，
+# 允许出现在带「旧 / 历史 / 早期 / 已替换」标记的行里（保留可追溯性）。
+STALE_TOKENS = ("0.9805", "0.8812", "19.7 ms", "pooled 0.8812")
+STALE_MARKERS = ("旧", "历史", "早期", "已替换", "previous")
+DOCS_WITH_NUMBERS = ("README.md", os.path.join("docs", "interview-notes.md"))
+
 
 def pooled_auroc(dirs):
     byv = {}
@@ -87,6 +93,16 @@ def main():
     for text in ("%.4f" % got["img"], "%.4f" % got["px"], "%.4f" % got["au"], "%.4f" % got["pooled"]):
         if text not in readme:
             bad.append("README 缺少数字 %s" % text)
+
+    # 过期数字守卫：文档里不许把旧协议的数当现役结论
+    for rel in DOCS_WITH_NUMBERS:
+        path = os.path.join(a.root, rel)
+        if not os.path.isfile(path):
+            continue
+        for lineno, line in enumerate(open(path, encoding="utf-8").read().split("\n"), 1):
+            if any(tok in line for tok in STALE_TOKENS) and not any(m in line for m in STALE_MARKERS):
+                bad.append("%s:%d 出现过期数字 %r（若为历史对照，请在同句标注「旧」）"
+                           % (rel, lineno, line.strip()[:60]))
 
     print("| 指标 | pair-baseline.json | 复算 |")
     print("|---|---:|---:|")
