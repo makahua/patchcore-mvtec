@@ -4,7 +4,7 @@ VisA 是 Amazon Research 发布的工业视觉异常检测数据集，包含 12 
 
 ## 下载与解压
 
-官方原始 tar 包约 1.93 GB。当前工作区已下载为 `VisA_20220922.tar`，解压至 `VisA_raw`，整理后的全量 1-class 数据在 `VisA_pytorch\1cls`。重新下载或续传时：
+官方原始 tar 包约 1.93 GB。曾下载为 `VisA_20220922.tar` 并解压至 `VisA_raw`；**该 tar 已在 2026-11-09 的磁盘清理中删除（释放 1.8 GB）**，`VisA_raw` 与整理后的 `VisA_pytorch\1cls` 均保留。需要重建时重新下载：
 
 ```powershell
 cd E:\面试项目文件夹\patchcore-mvtec
