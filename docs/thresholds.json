@@ -1,6 +1,6 @@
 {
   "protocol": {
-    "layers": "2+3",
+    "layers": "2+3（默认）；capsule/screw=1+2",
     "size": 320,
     "thr_pct": 99.5,
     "ng_ratio": 1.2,
@@ -14,10 +14,11 @@
     "weights": "wide_resnet50_2_timm.pth (timm racm_in1k)",
     "dataset_role": "MVTec AD, development only (test seen many times)"
   },
-  "note": "thr_ok = 每类留出良品的 P99.5 分位；thr_ng = thr_ok x 1.2。阈值与类别绑定，不可跨类或跨权重迁移；0.5% 名义过杀在 18-117 张标定下不可达（conformal 15/15 类不达标）。",
+  "note": "thr_ok = 每类留出良品的 P99.5 分位；thr_ng = thr_ok x 1.2。阈值与类别绑定，不可跨类或跨权重迁移；0.5% 名义过杀在 18-117 张标定下不可达（conformal 15/15 类不达标）。layers 列说明该类用哪套特征层；服务时按 configs/patchcore_profile.json 取。",
   "classes": [
     {
       "category": "bottle",
+      "layers": "2+3",
       "n_calib": 62,
       "n_test": 83,
       "seeds": [
@@ -40,6 +41,7 @@
     },
     {
       "category": "cable",
+      "layers": "2+3",
       "n_calib": 67,
       "n_test": 150,
       "seeds": [
@@ -62,6 +64,7 @@
     },
     {
       "category": "capsule",
+      "layers": "1+2",
       "n_calib": 65,
       "n_test": 132,
       "seeds": [
@@ -70,20 +73,21 @@
         2
       ],
       "thr_ok": [
-        38.4408,
-        39.4014,
-        39.9283
+        33.0928,
+        32.3403,
+        32.279
       ],
-      "thr_ok_mean": 39.2568,
-      "thr_ok_std": 0.7542,
-      "thr_ng_mean": 47.1082,
-      "recall_mean": 0.4312,
+      "thr_ok_mean": 32.5707,
+      "thr_ok_std": 0.4532,
+      "thr_ng_mean": 39.0848,
+      "recall_mean": 0.7462,
       "fpr_mean": 0.0,
-      "img_auroc_mean": 0.9823,
-      "pixel_auroc_mean": 0.989
+      "img_auroc_mean": 0.9904,
+      "pixel_auroc_mean": 0.9835
     },
     {
       "category": "carpet",
+      "layers": "2+3",
       "n_calib": 84,
       "n_test": 117,
       "seeds": [
@@ -106,6 +110,7 @@
     },
     {
       "category": "grid",
+      "layers": "2+3",
       "n_calib": 79,
       "n_test": 78,
       "seeds": [
@@ -128,6 +133,7 @@
     },
     {
       "category": "hazelnut",
+      "layers": "2+3",
       "n_calib": 117,
       "n_test": 110,
       "seeds": [
@@ -150,6 +156,7 @@
     },
     {
       "category": "leather",
+      "layers": "2+3",
       "n_calib": 73,
       "n_test": 124,
       "seeds": [
@@ -172,6 +179,7 @@
     },
     {
       "category": "metal_nut",
+      "layers": "2+3",
       "n_calib": 66,
       "n_test": 115,
       "seeds": [
@@ -194,6 +202,7 @@
     },
     {
       "category": "pill",
+      "layers": "2+3",
       "n_calib": 80,
       "n_test": 167,
       "seeds": [
@@ -216,6 +225,7 @@
     },
     {
       "category": "screw",
+      "layers": "1+2",
       "n_calib": 96,
       "n_test": 160,
       "seeds": [
@@ -224,20 +234,21 @@
         2
       ],
       "thr_ok": [
-        38.6231,
-        38.1125,
-        39.0825
+        33.5022,
+        33.3435,
+        32.9442
       ],
-      "thr_ok_mean": 38.606,
-      "thr_ok_std": 0.4852,
-      "thr_ng_mean": 46.3272,
-      "recall_mean": 0.6359,
-      "fpr_mean": 0.0325,
-      "img_auroc_mean": 0.9231,
-      "pixel_auroc_mean": 0.984
+      "thr_ok_mean": 33.2633,
+      "thr_ok_std": 0.2875,
+      "thr_ng_mean": 39.916,
+      "recall_mean": 0.7815,
+      "fpr_mean": 0.0407,
+      "img_auroc_mean": 0.9737,
+      "pixel_auroc_mean": 0.9897
     },
     {
       "category": "tile",
+      "layers": "2+3",
       "n_calib": 69,
       "n_test": 117,
       "seeds": [
@@ -260,6 +271,7 @@
     },
     {
       "category": "toothbrush",
+      "layers": "2+3",
       "n_calib": 18,
       "n_test": 42,
       "seeds": [
@@ -282,6 +294,7 @@
     },
     {
       "category": "transistor",
+      "layers": "2+3",
       "n_calib": 63,
       "n_test": 100,
       "seeds": [
@@ -304,6 +317,7 @@
     },
     {
       "category": "wood",
+      "layers": "2+3",
       "n_calib": 74,
       "n_test": 79,
       "seeds": [
@@ -326,6 +340,7 @@
     },
     {
       "category": "zipper",
+      "layers": "2+3",
       "n_calib": 72,
       "n_test": 151,
       "seeds": [

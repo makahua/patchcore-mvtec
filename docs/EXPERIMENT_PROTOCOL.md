@@ -1,5 +1,16 @@
 # 实验协议与数据集角色
 
+## 按类配置（profile）
+
+默认协议仍是 320 / `2+3` / legacy greedy 2000 / P99.5；`configs/patchcore_profile.json`
+允许按类覆盖（当前只有 screw、capsule 用 `1+2`，依据 `docs/screw-resolution.md` 与
+`docs/split-seed-check.md` 的 split-42 / split-123 两套复核）。
+
+- 运行：`patchcore_demo.py ... --profile configs/patchcore_profile.json`（打印 `[profile] <cat>.<key> = <value>`，
+  结果列记录 `profile` / `profile_overrides`）。
+- 阈值表 `docs/thresholds.json` 的 `layers` 列说明该类用的是哪套特征层；**阈值与层组合、权重一起绑定**。
+- `tools/build_pair_baseline.py` 按 profile 的 `evidence` 解析每类的数据源，CI 用 `--check` 盯住主表数字。
+
 ## 冻结协议（2026-11-06）
 
 先固定配置与验收规则，再运行实验；后续实验不得逐项改协议。

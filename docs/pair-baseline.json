@@ -1,268 +1,268 @@
 {
- "protocol": "P99.5 / legacy greedy 2000 / 320 stretch / split-seed 42 / seeds 0-2 / layers 2+3",
- "data_role": "MVTec test = development-only",
- "aggregate": {
-  "pooled": {
-   "mean": 0.8799,
-   "std": 0.0007
+  "protocol": "P99.5 / legacy greedy 2000 / 320 stretch / split-seed 42 / seeds 0-2 / layers 2+3（默认）；capsule=1+2、screw=1+2",
+  "data_role": "MVTec test = development-only",
+  "aggregate": {
+    "pooled": {
+      "mean": 0.8564,
+      "std": 0.0008
+    },
+    "img": {
+      "mean": 0.983,
+      "std": 0.0008
+    },
+    "px": {
+      "mean": 0.9711,
+      "std": 0.0005
+    },
+    "au": {
+      "mean": 0.9229,
+      "std": 0.0012
+    },
+    "au10": {
+      "mean": 0.816,
+      "std": 0.0006
+    },
+    "lat": {
+      "mean": 22.0922,
+      "std": 1.6451
+    }
   },
-  "img": {
-   "mean": 0.9791,
-   "std": 0.001
+  "triage": {
+    "0": {
+      "miss": 177,
+      "n_bad": 1258,
+      "over": 1,
+      "n_good": 467,
+      "review": 459,
+      "n_test": 1725
+    },
+    "1": {
+      "miss": 159,
+      "n_bad": 1258,
+      "over": 1,
+      "n_good": 467,
+      "review": 458,
+      "n_test": 1725
+    },
+    "2": {
+      "miss": 146,
+      "n_bad": 1258,
+      "over": 1,
+      "n_good": 467,
+      "review": 476,
+      "n_test": 1725
+    }
   },
-  "px": {
-   "mean": 0.9711,
-   "std": 0.0005
-  },
-  "au": {
-   "mean": 0.9203,
-   "std": 0.0015
-  },
-  "au10": {
-   "mean": 0.8055,
-   "std": 0.001
-  },
-  "lat": {
-   "mean": 21.5153,
-   "std": 1.9477
-  }
- },
- "triage": {
-  "0": {
-   "miss": 219,
-   "n_bad": 1258,
-   "over": 1,
-   "n_good": 467,
-   "review": 416,
-   "n_test": 1725
-  },
-  "1": {
-   "miss": 207,
-   "n_bad": 1258,
-   "over": 1,
-   "n_good": 467,
-   "review": 424,
-   "n_test": 1725
-  },
-  "2": {
-   "miss": 211,
-   "n_bad": 1258,
-   "over": 1,
-   "n_good": 467,
-   "review": 431,
-   "n_test": 1725
-  }
- },
- "per_class": [
-  {
-   "category": "bottle",
-   "n_train": 147,
-   "n_calib": 62,
-   "n_test": 83,
-   "img": 1.0,
-   "px": 0.9855,
-   "au": 0.9454,
-   "thr": 39.67,
-   "rec": 0.9577,
-   "fpr": 0.0,
-   "lat": 20.27,
-   "peak": 190.0
-  },
-  {
-   "category": "cable",
-   "n_train": 157,
-   "n_calib": 67,
-   "n_test": 150,
-   "img": 0.9856,
-   "px": 0.9804,
-   "au": 0.9268,
-   "thr": 47.49,
-   "rec": 0.8152,
-   "fpr": 0.0172,
-   "lat": 23.74,
-   "peak": 190.0
-  },
-  {
-   "category": "capsule",
-   "n_train": 154,
-   "n_calib": 65,
-   "n_test": 132,
-   "img": 0.9823,
-   "px": 0.989,
-   "au": 0.9449,
-   "thr": 39.26,
-   "rec": 0.4312,
-   "fpr": 0.0,
-   "lat": 23.2,
-   "peak": 189.6
-  },
-  {
-   "category": "carpet",
-   "n_train": 196,
-   "n_calib": 84,
-   "n_test": 117,
-   "img": 0.9845,
-   "px": 0.9859,
-   "au": 0.9423,
-   "thr": 35.43,
-   "rec": 0.9251,
-   "fpr": 0.0357,
-   "lat": 23.34,
-   "peak": 189.6
-  },
-  {
-   "category": "grid",
-   "n_train": 185,
-   "n_calib": 79,
-   "n_test": 78,
-   "img": 0.9708,
-   "px": 0.9586,
-   "au": 0.8622,
-   "thr": 35.75,
-   "rec": 0.9123,
-   "fpr": 0.0159,
-   "lat": 19.45,
-   "peak": 190.0
-  },
-  {
-   "category": "hazelnut",
-   "n_train": 274,
-   "n_calib": 117,
-   "n_test": 110,
-   "img": 0.9998,
-   "px": 0.9871,
-   "au": 0.944,
-   "thr": 51.73,
-   "rec": 0.9762,
-   "fpr": 0.0,
-   "lat": 23.16,
-   "peak": 189.6
-  },
-  {
-   "category": "leather",
-   "n_train": 172,
-   "n_calib": 73,
-   "n_test": 124,
-   "img": 1.0,
-   "px": 0.9882,
-   "au": 0.9725,
-   "thr": 31.76,
-   "rec": 1.0,
-   "fpr": 0.0313,
-   "lat": 22.24,
-   "peak": 189.6
-  },
-  {
-   "category": "metal_nut",
-   "n_train": 154,
-   "n_calib": 66,
-   "n_test": 115,
-   "img": 0.9979,
-   "px": 0.9832,
-   "au": 0.9407,
-   "thr": 43.88,
-   "rec": 0.9856,
-   "fpr": 0.0303,
-   "lat": 18.67,
-   "peak": 189.6
-  },
-  {
-   "category": "pill",
-   "n_train": 187,
-   "n_calib": 80,
-   "n_test": 167,
-   "img": 0.9519,
-   "px": 0.9764,
-   "au": 0.9508,
-   "thr": 41.77,
-   "rec": 0.6714,
-   "fpr": 0.0,
-   "lat": 18.4,
-   "peak": 190.0
-  },
-  {
-   "category": "screw",
-   "n_train": 224,
-   "n_calib": 96,
-   "n_test": 160,
-   "img": 0.9231,
-   "px": 0.984,
-   "au": 0.9293,
-   "thr": 38.61,
-   "rec": 0.6359,
-   "fpr": 0.0325,
-   "lat": 18.93,
-   "peak": 189.6
-  },
-  {
-   "category": "tile",
-   "n_train": 161,
-   "n_calib": 69,
-   "n_test": 117,
-   "img": 1.0,
-   "px": 0.9197,
-   "au": 0.8177,
-   "thr": 40.94,
-   "rec": 0.9643,
-   "fpr": 0.0,
-   "lat": 19.85,
-   "peak": 190.0
-  },
-  {
-   "category": "toothbrush",
-   "n_train": 42,
-   "n_calib": 18,
-   "n_test": 42,
-   "img": 0.9426,
-   "px": 0.9903,
-   "au": 0.9076,
-   "thr": 34.77,
-   "rec": 0.9778,
-   "fpr": 0.3055,
-   "lat": 22.41,
-   "peak": 189.6
-  },
-  {
-   "category": "transistor",
-   "n_train": 150,
-   "n_calib": 63,
-   "n_test": 100,
-   "img": 0.9958,
-   "px": 0.948,
-   "au": 0.9109,
-   "thr": 43.86,
-   "rec": 0.9,
-   "fpr": 0.0167,
-   "lat": 23.35,
-   "peak": 189.6
-  },
-  {
-   "category": "wood",
-   "n_train": 173,
-   "n_calib": 74,
-   "n_test": 79,
-   "img": 0.9866,
-   "px": 0.9106,
-   "au": 0.8749,
-   "thr": 41.28,
-   "rec": 0.9667,
-   "fpr": 0.1579,
-   "lat": 26.01,
-   "peak": 190.0
-  },
-  {
-   "category": "zipper",
-   "n_train": 168,
-   "n_calib": 72,
-   "n_test": 151,
-   "img": 0.9659,
-   "px": 0.9801,
-   "au": 0.9348,
-   "thr": 35.36,
-   "rec": 0.8599,
-   "fpr": 0.0625,
-   "lat": 19.71,
-   "peak": 189.6
-  }
- ]
+  "per_class": [
+    {
+      "category": "bottle",
+      "n_train": 147,
+      "n_calib": 62,
+      "n_test": 83,
+      "img": 1.0,
+      "px": 0.9855,
+      "au": 0.9454,
+      "thr": 39.67,
+      "rec": 0.9577,
+      "fpr": 0.0,
+      "lat": 20.27,
+      "peak": 190.0
+    },
+    {
+      "category": "cable",
+      "n_train": 157,
+      "n_calib": 67,
+      "n_test": 150,
+      "img": 0.9856,
+      "px": 0.9804,
+      "au": 0.9268,
+      "thr": 47.49,
+      "rec": 0.8152,
+      "fpr": 0.0172,
+      "lat": 23.74,
+      "peak": 190.0
+    },
+    {
+      "category": "capsule",
+      "n_train": 154,
+      "n_calib": 65,
+      "n_test": 132,
+      "img": 0.9904,
+      "px": 0.9835,
+      "au": 0.9607,
+      "thr": 32.57,
+      "rec": 0.7462,
+      "fpr": 0.0,
+      "lat": 26.2,
+      "peak": 230.8
+    },
+    {
+      "category": "carpet",
+      "n_train": 196,
+      "n_calib": 84,
+      "n_test": 117,
+      "img": 0.9845,
+      "px": 0.9859,
+      "au": 0.9423,
+      "thr": 35.43,
+      "rec": 0.9251,
+      "fpr": 0.0357,
+      "lat": 23.34,
+      "peak": 189.6
+    },
+    {
+      "category": "grid",
+      "n_train": 185,
+      "n_calib": 79,
+      "n_test": 78,
+      "img": 0.9708,
+      "px": 0.9586,
+      "au": 0.8622,
+      "thr": 35.75,
+      "rec": 0.9123,
+      "fpr": 0.0159,
+      "lat": 19.45,
+      "peak": 190.0
+    },
+    {
+      "category": "hazelnut",
+      "n_train": 274,
+      "n_calib": 117,
+      "n_test": 110,
+      "img": 0.9998,
+      "px": 0.9871,
+      "au": 0.944,
+      "thr": 51.73,
+      "rec": 0.9762,
+      "fpr": 0.0,
+      "lat": 23.16,
+      "peak": 189.6
+    },
+    {
+      "category": "leather",
+      "n_train": 172,
+      "n_calib": 73,
+      "n_test": 124,
+      "img": 1.0,
+      "px": 0.9882,
+      "au": 0.9725,
+      "thr": 31.76,
+      "rec": 1.0,
+      "fpr": 0.0313,
+      "lat": 22.24,
+      "peak": 189.6
+    },
+    {
+      "category": "metal_nut",
+      "n_train": 154,
+      "n_calib": 66,
+      "n_test": 115,
+      "img": 0.9979,
+      "px": 0.9832,
+      "au": 0.9407,
+      "thr": 43.88,
+      "rec": 0.9856,
+      "fpr": 0.0303,
+      "lat": 18.67,
+      "peak": 189.6
+    },
+    {
+      "category": "pill",
+      "n_train": 187,
+      "n_calib": 80,
+      "n_test": 167,
+      "img": 0.9519,
+      "px": 0.9764,
+      "au": 0.9508,
+      "thr": 41.77,
+      "rec": 0.6714,
+      "fpr": 0.0,
+      "lat": 18.4,
+      "peak": 190.0
+    },
+    {
+      "category": "screw",
+      "n_train": 224,
+      "n_calib": 96,
+      "n_test": 160,
+      "img": 0.9737,
+      "px": 0.9897,
+      "au": 0.9523,
+      "thr": 33.26,
+      "rec": 0.7815,
+      "fpr": 0.0407,
+      "lat": 24.58,
+      "peak": 230.8
+    },
+    {
+      "category": "tile",
+      "n_train": 161,
+      "n_calib": 69,
+      "n_test": 117,
+      "img": 1.0,
+      "px": 0.9197,
+      "au": 0.8177,
+      "thr": 40.94,
+      "rec": 0.9643,
+      "fpr": 0.0,
+      "lat": 19.85,
+      "peak": 190.0
+    },
+    {
+      "category": "toothbrush",
+      "n_train": 42,
+      "n_calib": 18,
+      "n_test": 42,
+      "img": 0.9426,
+      "px": 0.9903,
+      "au": 0.9076,
+      "thr": 34.77,
+      "rec": 0.9778,
+      "fpr": 0.3055,
+      "lat": 22.41,
+      "peak": 189.6
+    },
+    {
+      "category": "transistor",
+      "n_train": 150,
+      "n_calib": 63,
+      "n_test": 100,
+      "img": 0.9958,
+      "px": 0.948,
+      "au": 0.9109,
+      "thr": 43.86,
+      "rec": 0.9,
+      "fpr": 0.0167,
+      "lat": 23.35,
+      "peak": 189.6
+    },
+    {
+      "category": "wood",
+      "n_train": 173,
+      "n_calib": 74,
+      "n_test": 79,
+      "img": 0.9866,
+      "px": 0.9106,
+      "au": 0.8749,
+      "thr": 41.28,
+      "rec": 0.9667,
+      "fpr": 0.1579,
+      "lat": 26.01,
+      "peak": 190.0
+    },
+    {
+      "category": "zipper",
+      "n_train": 168,
+      "n_calib": 72,
+      "n_test": 151,
+      "img": 0.9659,
+      "px": 0.9801,
+      "au": 0.9348,
+      "thr": 35.36,
+      "rec": 0.8599,
+      "fpr": 0.0625,
+      "lat": 19.71,
+      "peak": 189.6
+    }
+  ]
 }

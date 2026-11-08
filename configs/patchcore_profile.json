@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "note": "按类覆盖的服务/实验配置：未列出的类别沿用冻结协议（320 / 2+3 / P99.5）。证据见 docs/screw-resolution.md：320@1+2 把 screw miss 36.4%→21.8%、capsule 56.9%→25.4%，split-123 复核见 docs/split-seed-check.md。",
+  "defaults": {
+    "size": 320,
+    "layers": "2+3",
+    "thr_pct": 99.5,
+    "blur_sigma": 2,
+    "score_agg": "max"
+  },
+  "overrides": {
+    "screw": {"layers": "1+2"},
+    "capsule": {"layers": "1+2"}
+  },
+  "evidence": {
+    "screw": {
+      "run_root": "experiment_data/06_optimization/16_screw12_p995",
+      "run_glob": "12_screw_seed_%03d"
+    },
+    "capsule": {
+      "run_root": "experiment_data/06_optimization/14_capsule12",
+      "run_glob": "12_capsule_seed_%03d"
+    }
+  }
+}

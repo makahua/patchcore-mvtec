@@ -94,6 +94,31 @@ capsule 的漏检不是「阈值放歪」，是**小面积压印/戳伤在 /8 �
 - 阈值仍由每类 18–117 张良品估 P99.5，尾部误差未消除（见 [phase1 笔记](phase1-notes.md)）。
 - 时延为单进程、算法段；端到端另算（见 [latency-breakdown](latency-breakdown.md)）。
 
+## 9. split-123 复核（2026-11-09）
+
+换一个划分（`--split-seed 123`）重跑两组，确认拆层收益不是 split-42 的噪声。基线 run 在
+`12_split123/`，1+2 复核在 `17_split123_l12/`（两批都没有 pixel dump，故基线无 AUPRO）。
+
+| 类别 | 配置 | image AUROC | 漏检@P99.5 | 算法段 | AUPRO@30 |
+|---|---|---:|---:|---:|---:|
+| screw | 2+3 | 0.9279 ± 0.0126 | 57.7% | 19.6 ms | — |
+| screw | **1+2** | **0.9763 ± 0.0041** | **26.9%** | 26.3 ms | 0.9555 |
+| capsule | 2+3 | 0.9525 ± 0.0118 | 30.9% | 24.5 ms | — |
+| capsule | **1+2** | **0.9818 ± 0.0011** | **21.1%** | 25.8 ms | 0.9607 |
+
+两个方向都成立：screw（+4.84 点 image、漏检 −30.8 点）、capsule（+2.93 点、−9.8 点）。注意
+**同一配置的漏检率本身随划分变动**（screw 2+3：split42 36.4% vs split123 57.7%；capsule 2+3：
+56.9% vs 30.9%）——这正是「阈值尾部估计不稳」的证据，也是不能只报单一划分的原因。
+
+复现：
+
+```powershell
+.venv\Scripts\python.exe tools\run_experiment.py --run-dir experiment_data/06_optimization/17_split123_l12/12_screw_seed_000 -- `
+  --category screw --layers 1+2 --size 320 --greedy 2000 --calib-ratio 0.3 --thr-pct 99.5 `
+  --split-seed 123 --seed 0 --weights torch_cache/wide_resnet50_2_timm.pth `
+  --data MVTec/mvtech_anomaly_detection
+```
+
 ## 8. 复现
 
 ```powershell

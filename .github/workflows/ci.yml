@@ -48,6 +48,11 @@ jobs:
         # 索引是给人的视图，磁盘上的 results.csv 才是事实；两者漂了就让 CI 红
         run: python tools/index_results.py --check
 
+      - name: Pair baseline json is up to date
+        # 主表数字来自逐类运行产物（未覆盖类 10_pair / 覆盖类见 profile evidence）；
+        # 任何一侧改动而另一侧没重建，这一步就红。
+        run: python tools/build_pair_baseline.py --check
+
       - name: README numbers match the 90-run baseline
         # 第二道数字闸：README 主表 / docs/pair-baseline.json / 10_pair 的 90 个 run
         # 三者必须一致，避免「文档写 A、仓库算出来 B」

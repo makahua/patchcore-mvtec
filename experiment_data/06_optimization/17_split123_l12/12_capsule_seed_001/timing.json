@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 368.952,
+  "per_category": [
+    {
+      "category": "capsule",
+      "latency_ms": 25.1,
+      "latency_p95_ms": 25.59,
+      "build_seconds": 341.1,
+      "peak_gpu_mb": 230.8,
+      "peak_cpu_mb": 6772.8,
+      "bank_file": "banks\\capsule.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

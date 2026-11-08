@@ -23,6 +23,10 @@ MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
 
+# --profile 生效的覆盖项（结果列用；跨函数共享）
+PROFILE_OVERRIDES = {}
+
+
 def peak_ws_mb():
     """本进程峰值工作集（MB）。Windows 用 K32GetProcessMemoryInfo；其它平台返回 None。"""
     try:
@@ -776,6 +780,8 @@ def run_category(args, cat, device):
                latency_p95_ms=round(float(np.percentile(lat, 95)), 2),
                build_seconds=round(build_s, 1),
                peak_cpu_mb=peak_ws_mb(),
+               profile=(os.path.basename(args.profile) if getattr(args, 'profile', '') else ''),
+               profile_overrides=','.join(sorted(PROFILE_OVERRIDES)),
                bank_file=(os.path.join(os.path.basename(args.save_bank), f'{cat}.npz')
                           if args.save_bank else ''))
     if device.type == 'cuda':
@@ -809,6 +815,8 @@ def main():
     ap.add_argument('--projection-dim', type=int, default=128)
     ap.add_argument('--starting-points', type=int, default=10)
     ap.add_argument('--greedy', type=int, default=0, help='k-center 贪心保留 patch 数，0=用随机抽样')
+    ap.add_argument('--profile', default='',
+                    help='按类覆盖的 JSON（configs/patchcore_profile.json）：只覆盖未显式给出的项')
     ap.add_argument('--pool-cap', type=int, default=0,
                     help='候选池上限（patch 总数，0=不限）；640 等大输入建议 150000 以控制内存')
     ap.add_argument('--thr-pct', type=float, default=99.0, help='阈值取训练集分数的百分位，漏检优先就调高')
@@ -854,6 +862,20 @@ def main():
     ap.add_argument('--save-bank', default='',
                     help='把记忆库与元数据存成 <dir>/<cat>.npz，供扰动/聚合实验复用')
     args = ap.parse_args()
+
+    # --profile：按类覆盖。判定「未显式给出」= 仍等于 argparse 默认值。
+    _prof_over = {}
+    if getattr(args, 'profile', ''):
+        import json as _json
+        with open(args.profile, encoding='utf-8') as _f:
+            _prof = _json.load(_f)
+        _prof_over = (_prof.get('overrides') or {}).get(args.category) or {}
+        globals()['PROFILE_OVERRIDES'] = dict(_prof_over)
+        _d = dict(ap.parse_known_args()[0].__dict__)
+        for _k, _v in _prof_over.items():
+            if _k in _d and getattr(args, _k) == _d[_k]:
+                setattr(args, _k, _v)
+                print(f'[profile] {args.category}.{_k} = {_v}')
 
     if args.split_seed is None:
         args.split_seed = args.seed

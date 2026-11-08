@@ -59,3 +59,18 @@
 .venv\Scripts\python.exe tools\split_check.py \
   --a experiment_data/06_optimization/10_pair --b experiment_data/06_optimization/12_split123
 ```
+
+## 7. 按类配置（1+2）在 split-123 上的复核
+
+主表改成按类配置（screw/capsule 用 `1+2`）后，这两类另在 split-123 上各跑三个 seed：
+
+| 类别 | 配置 | split-42 image | split-123 image | split-42 漏检 | split-123 漏检 |
+|---|---|---:|---:|---:|---:|
+| screw | 2+3 | 0.9231 | 0.9279 | 36.4% | 57.7% |
+| screw | 1+2 | 0.9737 | 0.9763 | 21.8% | 26.9% |
+| capsule | 2+3 | 0.9823 | 0.9525 | 56.9% | 30.9% |
+| capsule | 1+2 | 0.9904 | 0.9818 | 25.4% | 21.1% |
+
+读法：**换层带来的提升在两个划分上都成立**（screw +4.8/+5.1 点，capsule +2.9/+0.8 点），
+而漏检率的绝对值对划分极其敏感（同一配置能差 20 个点）——所以对外报漏检必须带划分信息，
+且不能把单次划分的漏检当成产线承诺。
