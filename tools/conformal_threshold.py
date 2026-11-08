@@ -107,6 +107,7 @@ def main():
     print(f'备注：alpha 每降一档，所需 calib 约翻倍（0.5%→199，0.2%→499）。\n')
 
     rows = []
+    skipped = []
     for p in files:
         d = json.load(open(p, encoding='utf-8'))
         cat = d.get('category') or os.path.basename(p)[:-5]
@@ -116,6 +117,12 @@ def main():
         ty = [int(t['label']) for t in test]
 
         cq = conformal_quantile(calib, a.alpha)
+        if cq is None:
+            # 空 calib：conformal_quantile 返回 None，原来直接解包会 TypeError；
+            # 这里显式跳过并记录，输出里能看出是哪一类缺标定。
+            print(f'[skip] {cat}: calib 为空，无法给出 conformal 阈值')
+            skipped.append(dict(category=cat, reason='empty_calib'))
+            continue
         thr, alpha_eff, k = cq
         reachable = alpha_eff <= a.alpha + 1e-12
         ev = empirical(ts, ty, thr)
@@ -149,22 +156,39 @@ def main():
             print(f"{r['category']:<12}{r['n_cal']:>6}{r['alpha_effective']:>9.2%}{flag:<1}"
                   f"{r['thr_conformal']:>9.2f}{r['fpr']:>9.2%}{r['fpr_upper']:>8.2%}{r['recall']:>7.1%}")
 
+    if not rows:
+        print('\n没有任何可评估的类别（全部 calib 为空）。')
+        if a.out:
+            _write_out(a.out, a, rows, skipped)
+        return
+
     reach = [r for r in rows if r['reachable']]
     print(f'\n可达 {a.alpha:.2%} 的类别：{len(reach)}/{len(rows)}'
           + (f'（{", ".join(r["category"] for r in reach)}）' if reach else '（一个都没有）'))
-    mean_recall = sum(r['recall'] for r in rows) / len(rows)
-    mean_fpr = sum(r['fpr'] for r in rows) / len(rows)
-    mean_fpr_naive = sum(r['fpr_naive'] for r in rows) / len(rows)
-    mean_recall_naive = sum(r['recall_naive'] for r in rows) / len(rows)
+    # nan（该类没有良品/缺陷测试图）不能直接参与平均，否则整行输出变 nan
+    def _mean(key):
+        vals = [r[key] for r in rows if r[key] == r[key]]
+        return sum(vals) / len(vals) if vals else float('nan')
+
+    mean_recall, mean_fpr = _mean('recall'), _mean('fpr')
+    mean_recall_naive, mean_fpr_naive = _mean('recall_naive'), _mean('fpr_naive')
     print(f'macro 召回 {mean_recall:.1%} / 实测过杀 {mean_fpr:.2%}（conformal）')
     print(f'macro 召回 {mean_recall_naive:.1%} / 实测过杀 {mean_fpr_naive:.2%}（旧经验分位）')
 
     if a.out:
-        os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
-        with open(a.out, 'w', encoding='utf-8') as f:
-            json.dump(dict(alpha=a.alpha, conf=a.conf, n_required=n_for_alpha(a.alpha), rows=rows),
-                      f, ensure_ascii=False, indent=2)
-        print('写入', a.out)
+        _write_out(a.out, a, rows, skipped)
+
+
+def _write_out(path, a, rows, skipped):
+    """写结果 JSON。NaN 不是合法 JSON：缺良品/缺陷的类别写 null，别让下游 json.load 崩。"""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    rows_out = [{k: (None if isinstance(v, float) and v != v else v) for k, v in r.items()}
+                for r in rows]
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(dict(alpha=a.alpha, conf=a.conf, n_required=n_for_alpha(a.alpha),
+                       skipped=skipped, rows=rows_out),
+                  f, ensure_ascii=False, indent=2, allow_nan=False)
+    print('写入', path)
 
 
 if __name__ == '__main__':

@@ -180,6 +180,9 @@ def main() -> int:
     parser.add_argument("--run-dir", required=True, help="unique destination; existing non-empty dirs are rejected")
     parser.add_argument("--package-existing", action="store_true",
                         help="rebuild normalized artifacts from an existing native run without rerunning inference")
+    parser.add_argument("--return-code", type=int, default=None,
+                        help="with --package-existing: original exit code; default reads metrics.json, "
+                             "otherwise -1 (unknown, stays status=failed)")
     parser.add_argument("command", nargs=argparse.REMAINDER,
                         help="patchcore_demo.py arguments after --")
     args = parser.parse_args()
@@ -195,8 +198,22 @@ def main() -> int:
         old_config = json.loads(config_path.read_text(encoding="utf-8"))
         old_command = old_config.get("command", [])
         original_args = old_command[2:] if len(old_command) >= 2 else []
+        # 重打包不能假定原来成功：默认沿用 metrics.json 的 return_code，
+        # 没有记录就留 -1（unknown），宁可标 failed 也不要把失败运行洗成 completed。
+        old_code = args.return_code
+        if old_code is None:
+            old_code = -1
+            old_metrics = run_dir / "metrics.json"
+            if old_metrics.is_file():
+                try:
+                    old_code = int(json.loads(old_metrics.read_text(encoding="utf-8")).get("return_code", -1))
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    old_code = -1
+        if old_code != 0:
+            print(f"warning: repackaged run keeps a non-zero/unknown return_code ({old_code}); "
+                  f"pass --return-code 0 only if the original run really succeeded")
         package_artifacts(run_dir, native, original_args,
-                          float(old_config.get("started_epoch", time.time())), 0)
+                          float(old_config.get("started_epoch", time.time())), old_code)
         print(f"Repackaged experiment artifacts: {run_dir}")
         return 0
     if not command:

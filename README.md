@@ -50,7 +50,16 @@
 最短路径（只需 numpy，不用 GPU、数据集、权重，1 秒）：
 
 ```powershell
+# 注意：这条命令复算的是 2026-10 的旧快照（P99 口径，macro 0.9805 / pooled 0.8812），
+# 不是上表的 P99.5 主表（0.9830 / 0.8564）。两个快照不可互证，原因见 docs/baseline-acceptance.md。
 .venv\Scripts\python.exe classify.py report --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2
+```
+
+要复算主表，用规范化 run（`06_optimization/10_pair` 与按类覆盖的 `16_screw12_p995`、`14_capsule12`）：
+
+```powershell
+.venv\Scripts\python.exe tools/build_pair_baseline.py --check
+.venv\Scripts\python.exe tools/export_thresholds.py --check
 ```
 
 完整跑（需要 torch 与本机数据；环境、权重来源、MVTec 下载见 [安装与数据准备](docs/install.md)）：
@@ -97,7 +106,7 @@
 
 逐类的 `thr_ok` / `thr_ng`、所用层组合与三 seed 波动见 [thresholds.json](docs/thresholds.json)——**阈值与类别、层组合、权重都绑定**，跨类或换权重都不能直接搬（`racm_in1k` → torchvision V1 时同一配置的阈值从 38.18 掉到 1.99，19×）。
 
-成本模型（漏检:过杀:复核 = 100:10:1，缺陷先验 1%，用先验纠偏测试集 72.9% 的缺陷富集）：**同一交替划分重算后**，0.5%×1.2× = 0.2862 /件、0.5%×1.5× = **0.1902** /件、5%×1.2× = 0.5156、5%×1.5× = 0.2082（早期 0.1814 是不同划分与口径，见 [Phase 1 对账](docs/phase1-notes.md)）——「5% 最优」站不住，最优工作点随先验走。
+成本模型（漏检:过杀:复核 = 100:10:1，缺陷先验 1%，用先验纠偏测试集 72.9% 的缺陷富集）：**同一交替划分重算后**，0.5%×1.2× = 0.2862 /件、0.5%×1.5× = **0.1902** /件、5%×1.2× = 0.5156、5%×1.5× = 0.2082（早期 0.1814 是不同划分与口径，见 [Phase 1 对账](docs/phase1-notes.md)）——「5% 最优」站不住，最优工作点随先验走。注意这组数的「漏检」按灰区上界 `thr_ng` 计，比三档表的 `thr_ok` 更保守，两组数字不能直接相减。
 
 命令：`classify.py report --conformal` / `--cost 100,10,1 --prevalence 0.01`。详见 [conformal 阈值](docs/conformal-thresholds.md)、[成本模型](docs/cost-model.md)。
 
@@ -147,7 +156,7 @@ patchcore-mvtec/
   analyze.py           # 批量结果对照；pyqt_demo.py 单图 GUI
   configs/             # 按类覆盖配置（patchcore_profile.json：screw/capsule → 1+2）
   tools/               # pro_aupro / latency_breakdown / conformal_threshold / check_links / 数据准备
-  tests/               # 23 条纯 numpy 测试（15 指标+成本、8 PRO/AUPRO）
+  tests/               # 35 条纯 numpy 测试（15 指标+成本、8 PRO/AUPRO、5 bank meta、7 稳健聚合）
   docs/                # 25 篇方法与实验文档 + pair-baseline.json（主表数字）+ thresholds.json（逐类阈值）
   experiment_data/     # 结果索引（大文件由 .gitignore 排除）
 ```

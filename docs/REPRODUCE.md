@@ -1,8 +1,8 @@
-# 复现说明
+﻿# 复现说明
 
 ## 环境与依赖
 
-本机实测环境：Python **3.13.9**（`.venv`，由 Anaconda base 创建）+ torch 2.7.0+cu128 + torchvision 0.22.0+cu128 + NumPy 2.3.5 + Pillow 12.0.0，RTX 3050 Laptop 4 GB 可用。建库与推理需要 PyTorch、torchvision、NumPy、Pillow。仅运行离线报告和阈值稳定性分析需要 NumPy。PyQt6 仅用于桌面演示。
+本机实测环境：Python **3.13.9**（`.venv`，由 Anaconda base 创建）+ torch 2.7.0+cu128 + torchvision 0.22.0+cu128 + NumPy 2.3.5 + Pillow 12.0.0，RTX 3050 Laptop 4 GB 可用。建库与推理需要 PyTorch、torchvision、NumPy、Pillow。仅运行离线报告和阈值稳定性分析需要 NumPy。桌面演示只需要 PyQt5（`pyqt_demo.py` 没有 PyQt6 兼容层，环境里装了 PyQt6 也不会用到）。
 
 ```powershell
 pip install -r requirements.txt

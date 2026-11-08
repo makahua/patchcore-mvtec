@@ -1,4 +1,4 @@
-# 数据、权重、产物都不进仓库（MVTec 有许可证，不能转发）
+﻿# 数据、权重、产物都不进仓库（MVTec 有许可证，不能转发）
 syn_data/
 _calib_test/
 _smoke*/
@@ -18,11 +18,8 @@ torch_cache/
 # 每个类别的热力图：体积大且可复现
 results*/heatmaps/
 
-# 逐图分数默认不入库，只放行 results_best（简历/README 里的三档表靠它秒级复算）
+# 逐图分数默认不入库，只放行 experiment_data/00_baselines/results_best（简历/README 里的三档表靠它秒级复算）
 # 注意：这些 json 里的 path 已由 patchcore_demo.py 的 rel_path() 写成相对路径
-results*/scores/
-!results_best/scores/
-!results_best/scores/*.json
 banks*/
 experiment_data/**/heatmaps/
 experiment_data/**/scores/
@@ -55,3 +52,7 @@ experiment_data/06_optimization/**/pixel_dumps/
 experiment_data/06_optimization/**/banks/
 experiment_data/06_optimization/**/suite/
 experiment_data/06_optimization/13_demo/
+
+# pytest / 沙箱留下的权限异常临时目录（本机删不掉，至少别进仓库）
+pytest-cache-files-*/
+.tmp_testdir/

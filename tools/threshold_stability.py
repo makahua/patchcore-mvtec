@@ -10,6 +10,9 @@ from pathlib import Path
 
 import numpy as np
 
+# 本文件在 tools/ 下，默认路径一律锚到仓库根，避免在别的目录执行时把结果写到别处
+ROOT = Path(__file__).resolve().parents[1]
+
 
 def summarize(path: Path, fpr: float, ng_ratio: float, repeats: int, seed: int):
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -32,7 +35,8 @@ def summarize(path: Path, fpr: float, ng_ratio: float, repeats: int, seed: int):
             "thr_ok": thr_ok,
             "thr_ng": thr_ng,
             "good_fpr": float(np.mean(scores[normal] >= thr_ok)) if normal.any() else float("nan"),
-            "defect_miss": float(np.mean(scores[anomalous] < thr_ng)) if anomalous.any() else float("nan"),
+            # 漏检 = 缺陷被判 OK（< thr_ok）；用 thr_ng 会把灰区件同时算进漏检与 review_rate
+            "defect_miss": float(np.mean(scores[anomalous] < thr_ok)) if anomalous.any() else float("nan"),
             "review_rate": float(np.mean((scores >= thr_ok) & (scores < thr_ng))),
         })
     return data.get("category", path.stem), len(calib), rows
@@ -40,12 +44,12 @@ def summarize(path: Path, fpr: float, ng_ratio: float, repeats: int, seed: int):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--scores", default="experiment_data/00_baselines/results_best/scores")
+    ap.add_argument("--scores", default=str(ROOT / "experiment_data/00_baselines/results_best/scores"))
     ap.add_argument("--fpr", type=float, default=0.005)
     ap.add_argument("--ng-ratio", type=float, default=1.2)
     ap.add_argument("--repeats", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=2026)
-    ap.add_argument("--out", default="experiment_data/01_mvtec_gpu/threshold_stability")
+    ap.add_argument("--out", default=str(ROOT / "experiment_data/01_mvtec_gpu/threshold_stability"))
     a = ap.parse_args()
     if not 0 < a.fpr < 1 or a.ng_ratio < 1 or a.repeats < 1:
         ap.error("fpr must be in (0,1), ng-ratio >= 1, and repeats >= 1")

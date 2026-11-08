@@ -3,10 +3,10 @@
 # 跑建库 / 推理 / 评测（build / infer / eval、patchcore_demo.py）→ 才需要 torch + torchvision + pillow
 torch>=2.0
 torchvision>=0.15
-numpy>=1.24
+numpy>=2.0
 pillow>=9.5
 
-# 可选：PyQt5/PyQt6 均可，界面会优先使用 PyQt6，失败时回退 PyQt5
+# 可选：GUI 演示（pyqt_demo.py）只支持 PyQt5，没有 PyQt6 兼容层
 # PyQt5>=5.15
 
 # 可选：只想看曲线图时用（脚本本身不依赖）

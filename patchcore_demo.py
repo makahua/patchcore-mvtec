@@ -519,6 +519,11 @@ def run_category(args, cat, device):
         print(f'[skip] {cat}: 找不到 {train_dir}')
         return None
 
+    # 逐类显存峰值：不重置的话 --category all 的 peak_gpu_mb 是进程累计值（只增不减），
+    # 后面的类别会被前面的类别污染。
+    if device.type == 'cuda':
+        torch.cuda.reset_peak_memory_stats()
+
     model = Features(pretrained=not args.no_pretrain, weights_path=args.weights,
                      imagenet_norm=getattr(args, 'imagenet_norm', False),
                      layers=args.layers).to(device).eval()
@@ -573,11 +578,14 @@ def run_category(args, cat, device):
     if args.pool_cap > 0 and train_imgs:
         quota = max(1, int(args.pool_cap) // len(train_imgs))
     bank, base_maps = [], []
+    grid_hw = None          # 特征网格 (h, w)，建库时记下，--save-bank 写 meta 用
     if quota and use_base:
         print(f'[{cat}] 注意：--pool-cap 在 base 邻域模式下不生效（需要完整空间网格做展开）')
     with torch.no_grad():
         for ii, p in enumerate(train_imgs):
             feat = model(load_img(p, args.size, args.preprocess, args.aspect_crop).to(device))
+            if grid_hw is None:
+                grid_hw = (int(feat.shape[-2]), int(feat.shape[-1]))
             if use_base:
                 base_maps.append(base_desc(feat).squeeze(0).detach().cpu())
             else:
@@ -715,7 +723,9 @@ def run_category(args, cat, device):
     for s, p, patch in sorted(top, key=lambda z: -z[0])[:3]:
         pm = patch.numpy()
         pm = (pm - pm.min()) / (pm.max() - pm.min() + 1e-8)
-        Image.fromarray((pm * 255).astype(np.uint8)).resize((args.size, args.size)).save(
+        # 与项目里其它 resize 保持一致：低分辨率分数图用双线性放大（默认 BICUBIC 会让热力图边缘发虚）
+        Image.fromarray((pm * 255).astype(np.uint8)).resize(
+            (args.size, args.size), resample=Image.BILINEAR).save(
             os.path.join(args.out, 'heatmaps', f'{cat}_{os.path.basename(p)}_score{s:.2f}.png'))
 
     os.makedirs(os.path.join(args.out, 'scores'), exist_ok=True)
@@ -747,7 +757,7 @@ def run_category(args, cat, device):
             blur_sigma=np.float32(args.blur_sigma), thr=np.float32(thr),
             thr_pct=np.float32(args.thr_pct),
             weights=np.array(os.path.basename(args.weights) if args.weights else 'IMAGENET1K_V1'),
-            grid=np.array(hw, dtype=np.int32), pool=np.array(bank_desc))
+            grid=np.array(grid_hw if grid_hw is not None else (0, 0), dtype=np.int32), pool=np.array(bank_desc))
         print(f'[bank] 记忆库 {tuple(mem.shape)} → {bank_path}')
 
     res = dict(category=cat, n_train=len(train_imgs), n_calib=len(calib_imgs), n_test=len(test_imgs),
@@ -863,19 +873,42 @@ def main():
                     help='把记忆库与元数据存成 <dir>/<cat>.npz，供扰动/聚合实验复用')
     args = ap.parse_args()
 
-    # --profile：按类覆盖。判定「未显式给出」= 仍等于 argparse 默认值。
-    _prof_over = {}
+    # --profile：defaults 对所有类生效，overrides 只对指定类生效（后者覆盖前者）。
+    # 判定「未显式给出」= CLI 值与 argparse 默认值相同；命令行显式给了就以命令行为准。
+    _prof_defaults, _prof_overrides = {}, {}
     if getattr(args, 'profile', ''):
         import json as _json
         with open(args.profile, encoding='utf-8') as _f:
             _prof = _json.load(_f)
-        _prof_over = (_prof.get('overrides') or {}).get(args.category) or {}
-        globals()['PROFILE_OVERRIDES'] = dict(_prof_over)
-        _d = dict(ap.parse_known_args()[0].__dict__)
-        for _k, _v in _prof_over.items():
-            if _k in _d and getattr(args, _k) == _d[_k]:
-                setattr(args, _k, _v)
-                print(f'[profile] {args.category}.{_k} = {_v}')
+        _prof_defaults = dict(_prof.get('defaults') or {})
+        _prof_overrides = dict(_prof.get('overrides') or {})
+
+    def _apply_profile(cat):
+        """把 profile 里该类的覆盖项写进 args，返回实际生效的 {key: value}。"""
+        eff = dict(_prof_defaults)
+        eff.update(_prof_overrides.get(cat) or {})
+        applied = {}
+        for k, v in eff.items():
+            if not hasattr(args, k):
+                print(f'[profile] 警告：{k} 不是命令行参数，已忽略')
+                continue
+            try:
+                is_default = getattr(args, k) == ap.get_default(k)
+            except (KeyError, AttributeError):
+                print(f'[profile] 警告：{k} 无法判定是否被显式指定，已忽略')
+                continue
+            if not is_default:
+                continue                      # 命令行显式给了，profile 让位
+            setattr(args, k, v)
+            applied[k] = v
+        globals()['PROFILE_OVERRIDES'] = applied
+        for k, v in applied.items():
+            print(f'[profile] {cat}.{k} = {v}')
+        return applied
+
+    def _profile_keys(cat):
+        return {k for k in set(_prof_defaults) | set(_prof_overrides.get(cat) or {})
+                if hasattr(args, k)}
 
     if args.split_seed is None:
         args.split_seed = args.seed
@@ -900,7 +933,15 @@ def main():
              if os.path.isdir(os.path.join(args.data, c))] if args.category == 'all' else [args.category])
     rows = []
     for c in cats:
-        r = run_category(args, c, device)
+        # 每一类都从同一份 CLI 参数出发再套 profile，避免上一个类的覆盖项泄漏到下一个类
+        _saved = {k: getattr(args, k) for k in _profile_keys(c)}
+        _apply_profile(c)
+        try:
+            r = run_category(args, c, device)
+        finally:
+            for k, v in _saved.items():
+                setattr(args, k, v)
+            globals()['PROFILE_OVERRIDES'] = {}
         if r:
             rows.append(r)
 

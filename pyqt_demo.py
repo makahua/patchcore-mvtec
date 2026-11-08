@@ -1,5 +1,10 @@
-"""PyQt6 desktop demo for one-image PatchCore inspection."""
+"""PyQt5 desktop demo for one-image PatchCore inspection.
+
+依赖 PyQt5（pyproject 的 demo extra 与之对应）。PyQt6 的 API 差异（exec/exec_、枚举作用域）
+本文件没有兼容层，装 PyQt6 是跑不起来的。
+"""
 import os
+import shutil
 import sys
 import tempfile
 import traceback
@@ -34,9 +39,10 @@ class InferWorker(QObject):
     done = pyqtSignal(str, float, str, str)
     failed = pyqtSignal(str)
 
-    def __init__(self, bank_path, image_path, weights_path):
+    def __init__(self, bank_path, image_path, weights_path, tmpdir):
         super().__init__()
         self.bank_path, self.image_path, self.weights_path = bank_path, image_path, weights_path
+        self.tmpdir = tmpdir
 
     def run(self):
         try:
@@ -49,13 +55,17 @@ class InferWorker(QObject):
             model = classify._pcdemo.Features(weights_path=weights,
                                                imagenet_norm=bool(meta.get("imagenet_norm", False)))
             model = model.to(device).eval()
-            patch, score = classify.image_patch_scores(model, bank, self.image_path,
-                                                        int(meta["size"]), device,
-                                                        bool(meta.get("neighbors", False)),
-                                                        meta.get("score_agg", "max"))
+            # 与 classify.cmd_infer 同口径：预处理/裁剪/平滑/邻域填充都要从 meta 取，
+            # 否则非默认记忆库（letterbox / aspect_crop / 非 2.0 sigma）会静默错分。
+            patch, score = classify.image_patch_scores(
+                model, bank, self.image_path, int(meta["size"]), device,
+                bool(meta.get("neighbors", False)), meta.get("score_agg", "max"),
+                meta.get("preprocess", "stretch"), float(meta.get("aspect_crop", 0.0)),
+                float(meta.get("blur_sigma", 2.0)), meta.get("neighbor_pad", "zero"))
             verdict = classify.verdict(score, float(meta["thr_ok"]), float(meta["thr_ng"]))
-            fd, heat_path = tempfile.mkstemp(suffix="_heatmap.png")
-            os.close(fd)
+            # 固定文件名写在本次会话的临时目录里，退出时整目录删掉；
+            # 原来每次点「开始检测」都 mkstemp 一个新文件、从不删除，会在 %TEMP% 里越积越多。
+            heat_path = os.path.join(self.tmpdir, "heatmap.png")
             classify.save_heatmap(patch, heat_path, image_path=self.image_path,
                                   size=int(meta["size"]))
             self.done.emit(verdict, score, heat_path,
@@ -71,6 +81,7 @@ class MainWindow(QMainWindow):
         self.resize(1050, 720)
         self.thread = None
         self.worker = None
+        self._tmpdir = tempfile.mkdtemp(prefix="patchcore_demo_")
         self._make_ui()
 
     def _make_ui(self):
@@ -130,7 +141,7 @@ class MainWindow(QMainWindow):
         self.result.setText("正在提取特征并检索记忆库…")
         self.original.setPixmap(QPixmap(image).scaled(self.original.size(), KEEP_ASPECT, SMOOTH))
         self.thread = QThread(self)
-        worker = InferWorker(bank, image, self.weights.text().strip())
+        worker = InferWorker(bank, image, self.weights.text().strip(), self._tmpdir)
         self.worker = worker
         worker.moveToThread(self.thread)
         self.thread.started.connect(worker.run)
@@ -153,6 +164,10 @@ class MainWindow(QMainWindow):
         self.result.setStyleSheet(f"font-size: 22px; padding: 12px; color: {colors.get(verdict, '#222')}")
         self.heatmap.setPixmap(QPixmap(path).scaled(self.heatmap.size(), KEEP_ASPECT, SMOOTH))
         self.run_button.setEnabled(True)
+
+    def closeEvent(self, event):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
+        super().closeEvent(event)
 
     def _failed(self, message):
         self.run_button.setEnabled(True)

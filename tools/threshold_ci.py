@@ -66,7 +66,10 @@ def rates(scores, labels, thr_ok, thr_ng, cost, prev):
     good = labels == 0
     defect = labels == 1
     fpr = mean_or_nan(scores[good] >= thr_ok)
-    miss = mean_or_nan(scores[defect] < thr_ng)
+    # 漏检 = 缺陷被判 OK（score < thr_ok）。不能用 thr_ng：灰区件已由 review_d 单独计入
+    # c_rev 代价，用 thr_ng 会让同一批灰区缺陷既付漏检代价又付复核代价（成本系统性高估）。
+    # 与 patchcore_demo.py / build_pair_baseline.py / agg_robust.py / pair_stats.py 口径一致。
+    miss = mean_or_nan(scores[defect] < thr_ok)
     review_d = mean_or_nan((scores[defect] >= thr_ok) & (scores[defect] < thr_ng))
     review_g = mean_or_nan((scores[good] >= thr_ok) & (scores[good] < thr_ng))
     review = mean_or_nan((scores >= thr_ok) & (scores < thr_ng))

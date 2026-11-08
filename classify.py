@@ -334,7 +334,8 @@ def cmd_build(a):
     bank = _pcdemo.coreset_greedy(feats, a.greedy, seed=a.seed)
     print(f'  贪心 coreset → {bank.shape[0]} patch（{bank.shape[0] / feats.shape[0]:.2%}）', flush=True)
     del feats
-    torch.cuda.empty_cache() if device.type == 'cuda' else None
+    if device.type == 'cuda':
+        torch.cuda.empty_cache()
     bank = bank.to(device)
 
     print('标定阈值…', flush=True)
@@ -431,15 +432,21 @@ def cmd_eval(a):
             by.setdefault(t, []).append((p, t))
         items = []
         for t, lst in by.items():
-            k = max(1, int(len(lst) * a.limit)) if a.limit <= 1 else a.limit
+            # 0<limit<1 按比例抽样；limit>=1 按张数。原实现是 int 类型，'--limit 1' 会被
+            # 算成 len*1=len（等于全跑），比例分支对 >=2 永远走不到。
+            k = max(1, int(round(len(lst) * a.limit))) if 0 < a.limit < 1 else int(a.limit)
             sel = rng.choice(len(lst), size=min(k, len(lst)), replace=False)
             items += [lst[i] for i in sorted(sel)]
 
     print(f'[{a.category}] 测试图 {len(items)} 张，阈值 {meta["thr_ok"]:.2f} / {meta["thr_ng"]:.2f}')
     rows = []
     for i, (p, t) in enumerate(items):
+        # 与 cmd_infer 完全同口径：预处理/裁剪/平滑/邻域填充都要从 meta 取，
+        # 否则非默认记忆库（letterbox、aspect_crop、非 2.0 sigma）的评测定量会静默偏差。
         _, score = image_patch_scores(model, bank, p, meta['size'], device,
-                                      meta['neighbors'], meta.get('score_agg', 'max'))
+                                      meta['neighbors'], meta.get('score_agg', 'max'),
+                                      meta.get('preprocess', 'stretch'), meta.get('aspect_crop', 0.0),
+                                      meta.get('blur_sigma', 2.0), meta.get('neighbor_pad', 'zero'))
         rows.append(dict(path=os.path.relpath(p, test_dir), label=t, defect=int(t != 'good'),
                          score=score, verdict=verdict(score, meta['thr_ok'], meta['thr_ng'])))
         if (i + 1) % 40 == 0:
@@ -559,13 +566,15 @@ def cmd_report(a):
         raise SystemExit(f'{a.scores} 下没有 scores/*.json，先跑 patchcore_demo.py --out 同目录')
 
     rows_all, lines, skipped = [], [], []
-    alpha_map = {}
+    alpha_map, calib_map, tests_map = {}, {}, {}
     print(f'{"类别":<12}{"良品":>5}{"缺陷":>5}{"thr_ok":>8}{"过杀":>8}{"良品复核":>10}{"漏检":>8}{"复核量":>8}')
     print('-' * 74)
     for p in files:
         j = json.load(open(p, encoding='utf-8'))
         calib = np.asarray(j.get('calib') or [], dtype=np.float64)
         tests = j.get('test') or []
+        # 早期/外部 scores 可能缺 category 字段：整个循环统一用 cat，避免 KeyError 让整份报告崩掉
+        cat = j.get('category') or os.path.splitext(os.path.basename(p))[0]
         if len(calib) < 10 or not tests:
             # 早期版本这里是静默 continue，屏幕只留一屏「-」，看不出为什么少了一类。
             # 标定图少于 10 张时 P99.5 分位数不可靠，小样本冒烟（--limit）几乎必然触发。
@@ -575,21 +584,22 @@ def cmd_report(a):
             continue
         if a.conformal:
             thr_ok, alpha_eff, _ = conformal_quantile(calib, a.fpr)
-            alpha_map[j['category']] = alpha_eff
+            alpha_map[cat] = alpha_eff
         else:
             thr_ok = float(np.percentile(calib, 100 * (1 - a.fpr)))
         thr_ng = thr_ok * a.ng_ratio
+        calib_map[cat], tests_map[cat] = calib, tests
         g = [t for t in tests if int(t['label']) == 0]
         d = [t for t in tests if int(t['label']) != 0]
         fa = sum(1 for t in g if t['score'] >= thr_ng)
         grv = sum(1 for t in g if thr_ok <= t['score'] < thr_ng)
         miss = sum(1 for t in d if t['score'] < thr_ok)
         drv = sum(1 for t in d if thr_ok <= t['score'] < thr_ng)
-        rows_all += [(j['category'], int(t['label']), float(t['score']), thr_ok, thr_ng) for t in tests]
+        rows_all += [(cat, int(t['label']), float(t['score']), thr_ok, thr_ng) for t in tests]
         pct = lambda x, n: f'{x / n:.1%}' if n else '-'
-        print(f'{j["category"]:<12}{len(g):>5}{len(d):>5}{thr_ok:>8.1f}{pct(fa, len(g)):>8}'
+        print(f'{cat:<12}{len(g):>5}{len(d):>5}{thr_ok:>8.1f}{pct(fa, len(g)):>8}'
               f'{pct(grv, len(g)):>10}{pct(miss, len(d)):>8}{pct(grv + drv, len(g) + len(d)):>8}')
-        lines.append(dict(category=j['category'], n_good=len(g), n_defect=len(d), thr_ok=round(thr_ok, 3),
+        lines.append(dict(category=cat, n_good=len(g), n_defect=len(d), thr_ok=round(thr_ok, 3),
                           thr_ng=round(thr_ng, 3), false_alarm=fa / len(g) if g else None,
                           review_good=grv / len(g) if g else None,
                           miss_rate=miss / len(d) if d else None,
@@ -627,7 +637,8 @@ def cmd_report(a):
     print(f'\n目标过杀 {a.fpr:.1%}｜灰区 {a.ng_ratio:g}×｜合计 {len(rows_all)} 张')
     print(f'  漏检率（缺陷判 OK，硬指标）      {pct(miss, len(D))}')
     print(f'  灰区兜住的缺陷（人工复核可捞回）  {pct(drv, len(D))}')
-    print(f'  复核后等效漏检                  {pct(miss, len(D))}（灰区人工兜底）')
+    print(f'  复核后等效漏检（=漏检率：已判 OK 的件复核也看不到，灰区只能兜住 REVIEW 件）'
+          f' {pct(miss, len(D))}')
     print(f'  人工复核量（占全量）            {pct(grv + drv, len(rows_all))}')
 
     # 真正的"产线曲线"是调 thr_ok 的分位（= 允许的良品过杀），漏检与过杀此消彼长。
@@ -636,11 +647,9 @@ def cmd_report(a):
     print(f'{"目标过杀":>9}{"实际过杀":>10}{"漏检":>9}{"灰区捞回":>10}{"复核量":>9}')
     for tgt in (0.001, 0.005, 0.01, 0.02, 0.05, 0.10):
         ths = {}
-        for p in files:
-            j = json.load(open(p, encoding='utf-8'))
-            calib = np.asarray(j.get('calib') or [], dtype=np.float64)
-            if len(calib) >= 10:
-                ths[j['category']] = float(np.percentile(calib, 100 * (1 - tgt)))
+        for cat_, calib_ in calib_map.items():
+            if len(calib_) >= 10:
+                ths[cat_] = float(np.percentile(calib_, 100 * (1 - tgt)))
         G2 = [r for r in rows_all if r[1] == 0]
         D2 = [r for r in rows_all if r[1] == 1]
         fa2 = sum(1 for r in G2 if r[2] >= ths.get(r[0], 0) * a.ng_ratio)
@@ -654,14 +663,12 @@ def cmd_report(a):
     # 各类缺陷的分数分布量级不同（screw 普遍高、leather 普遍低），混池后排序被打乱，
     # pooled 会比 macro 低一截。对外只能报一个数时必须说清是哪个口径。
     per_auc = []
-    for p in files:
-        j = json.load(open(p, encoding='utf-8'))
-        ts = j.get('test') or []
+    for cat_, ts in tests_map.items():
         if len(ts) < 2:
             continue
         a_ = auc([int(t['label']) for t in ts], [float(t['score']) for t in ts])
         if a_ == a_:          # 排除 nan
-            per_auc.append((j['category'], a_))
+            per_auc.append((cat_, a_))
     pooled_auc = auc([r[1] for r in rows_all], [r[2] for r in rows_all]) if rows_all else float('nan')
     macro_auc = float(np.mean([v for _, v in per_auc])) if per_auc else float('nan')
     macro_std = float(np.std([v for _, v in per_auc])) if per_auc else float('nan')
@@ -795,7 +802,8 @@ def main():
     e.add_argument('--bank', required=True)
     e.add_argument('--data', required=True)
     e.add_argument('--category', required=True)
-    e.add_argument('--limit', type=int, default=0, help='每类缺陷抽样张数（0=全跑）')
+    e.add_argument('--limit', type=float, default=0.0,
+                   help='每类缺陷抽样数：0<值<1 视为比例，>=1 视为张数（0=全跑）')
     e.add_argument('--out', default='experiment_data/03_triage')
     e.add_argument('--weights', default=None)
     e.add_argument('--seed', type=int, default=0)

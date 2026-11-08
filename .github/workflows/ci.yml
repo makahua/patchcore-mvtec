@@ -1,4 +1,4 @@
-name: ci
+﻿name: ci
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      # 只装 numpy + pytest：23 条测试与离线报表都不需要 torch。
+      # 只装 numpy + pytest：35 条测试与离线报表都不需要 torch。
       # 这本身就是个卖点——钉住面试数字的那套测试 10 秒内跑完。
       - name: Install (numpy only)
         run: |
@@ -29,7 +29,7 @@ jobs:
           python -m pip install numpy pytest
 
       - name: Syntax check
-        run: python -m compileall -q patchcore_demo.py classify.py analyze.py pyqt_demo.py tools tests
+        run: python -m compileall -q patchcore_demo.py classify.py analyze.py pyqt_demo.py make_synthetic.py tools tests
 
       - name: Unit tests
         run: python -m pytest tests -q
@@ -42,7 +42,7 @@ jobs:
           python classify.py report --scores experiment_data/00_baselines/results_best/scores --fpr 0.005 --ng-ratio 1.2 | tee report.txt
           grep -q '0.9805' report.txt
           grep -q '0.8812' report.txt
-          echo 'report numbers match README'
+          echo 'legacy snapshot numbers match (not the P99.5 main table)'
 
       - name: Results index is up to date
         # 索引是给人的视图，磁盘上的 results.csv 才是事实；两者漂了就让 CI 红

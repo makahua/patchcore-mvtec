@@ -1,4 +1,4 @@
-"""PRO / AUPRO（per-region overlap）评测工具。
+﻿"""PRO / AUPRO（per-region overlap）评测工具。
 
 PRO（Per-Region Overlap）是 MVTec 官方在 PatchCore / PaDiM 里报的区域级指标：
 把 GT 掩码按连通域切成若干区域，统计阈值 t 下每个区域被"命中"的像素比例，对所有区域取平均；
@@ -32,6 +32,9 @@ import sys
 import time
 
 import numpy as np
+
+# numpy 2.0 把 trapz 改名为 trapezoid；这里保留回退，numpy<2 环境不会直接 AttributeError
+_TRAPZ = getattr(np, "trapezoid", None) or getattr(np, "trapz", None)
 
 
 def _pil():
@@ -176,7 +179,7 @@ def aupro(fpr, pro, limit=0.3):
     x, y = x[keep], y[keep]
     xs = np.concatenate([[0.0], x, [limit]]) if x[0] > 0 else np.concatenate([x, [limit]])
     ys = np.concatenate([[y[0]], y, [np.interp(limit, x, y)]]) if x[0] > 0 else np.concatenate([y, [np.interp(limit, x, y)]])
-    return float(np.trapezoid(ys, xs)) / limit
+    return float(_TRAPZ(ys, xs)) / limit
 
 
 def pro_at(fpr, pro, target):
@@ -191,6 +194,9 @@ def pixel_auroc(scores, masks, nbins=1024):
     """像素级 AUROC。scores/masks 为同形状数组列表（patch 级即可，与 results.csv 同口径）。"""
     lo = min(float(np.min(m)) for m in scores)
     hi = max(float(np.max(m)) for m in scores)
+    if hi <= lo:
+        # 常数分数图（模型完全退化）：排序无信息，AUROC 按 0.5 处理而不是除零崩溃
+        return 0.5
     scale = (hi - lo) / float(nbins)
     pos = np.zeros(nbins, np.int64)
     neg = np.zeros(nbins, np.int64)
