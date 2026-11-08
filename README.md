@@ -132,7 +132,7 @@ PRO/AUPRO 按 GT 连通域等权，新协议 macro **AUPRO@30% 0.9203 ± 0.0015*
 
 ## 诚实的边界
 
-- 固定划分、单 seed 为主；screw/capsule 的低召回说明**分辨率与视野是硬约束**，不是调参能解决的。
+- 固定划分、单 seed 为主；screw/capsule 的低召回已定位到**特征频率**而不是像素数：640 输入（`2+3`）只抬 AUROC、不抬 P99.5 召回；`1+2`（layer1 原生 /4）把 screw 漏检 36.4%→21.8%、capsule 56.9%→25.4%（见 [分辨率与频率](docs/screw-resolution.md)）。
 - MVTec 已参与多轮开发，只能按开发集呈现；VisA PCB2 已揭盲一次外部检查，不再是干净 holdout（见 [实验协议](docs/EXPERIMENT_PROTOCOL.md)）。
 - 失败实验也留着：`--imagenet-norm` 让 screw 从 0.901 掉到 0.867；9 邻域修完 bug 仍不划算，所以默认关、只作为可复算的对照保留。
 - 更多坑、简历写法、面试问答、30 分钟复现与 CI 说明见 [面试笔记](docs/interview-notes.md)。
@@ -146,11 +146,11 @@ patchcore-mvtec/
   analyze.py           # 批量结果对照；pyqt_demo.py 单图 GUI
   tools/               # pro_aupro / latency_breakdown / conformal_threshold / check_links / 数据准备
   tests/               # 23 条纯 numpy 测试（15 指标+成本、8 PRO/AUPRO）
-  docs/                # 23 篇方法与实验文档 + pair-baseline.json（主表数字）+ thresholds.json（逐类阈值）
+  docs/                # 25 篇方法与实验文档 + pair-baseline.json（主表数字）+ thresholds.json（逐类阈值）
   experiment_data/     # 结果索引（大文件由 .gitignore 排除）
 ```
 
-文档索引：[vs-upstream](docs/vs-upstream.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[基线验收](docs/baseline-acceptance.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)｜[特征层消融](docs/features-ablation.md)｜[成本模型](docs/cost-model.md)｜[PRO/AUPRO](docs/pro-aupro.md)｜[时延拆解](docs/latency-breakdown.md)｜[端到端上限估算](docs/e2e-ceiling.md)｜[鲁棒性](docs/robustness.md)｜[预处理对照](docs/preprocessing-ablation.md)｜[邻域填充](docs/neighbor-ablation.md)｜[鲁棒聚合](docs/robust-aggregation.md)｜[split 敏感性](docs/split-seed-check.md)｜[阈值表](docs/thresholds.json)｜[面试笔记](docs/interview-notes.md)。
+文档索引：[vs-upstream](docs/vs-upstream.md)｜[分辨率与频率](docs/screw-resolution.md)｜[Phase 1 笔记](docs/phase1-notes.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[基线验收](docs/baseline-acceptance.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)｜[特征层消融](docs/features-ablation.md)｜[成本模型](docs/cost-model.md)｜[PRO/AUPRO](docs/pro-aupro.md)｜[时延拆解](docs/latency-breakdown.md)｜[端到端上限估算](docs/e2e-ceiling.md)｜[鲁棒性](docs/robustness.md)｜[预处理对照](docs/preprocessing-ablation.md)｜[邻域填充](docs/neighbor-ablation.md)｜[鲁棒聚合](docs/robust-aggregation.md)｜[split 敏感性](docs/split-seed-check.md)｜[阈值表](docs/thresholds.json)｜[面试笔记](docs/interview-notes.md)。
 
 ## 许可
 

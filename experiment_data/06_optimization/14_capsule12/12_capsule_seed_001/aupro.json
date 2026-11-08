@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.9603923280985662,
+  "aupru_std": 0.0,
+  "aupru_min": 0.9603923280985662,
+  "aupru_max": 0.9603923280985662,
+  "worst": [
+    {
+      "category": "capsule",
+      "aupru": 0.9603923280985662,
+      "aupru_01": 0.9228320620265252,
+      "pro_at_005": 0.9681568815664795,
+      "pro_at_01": 0.9759480540216933,
+      "pixel_auroc": 0.9849376723632393,
+      "n_regions": 118,
+      "n_images": 132
+    }
+  ],
+  "pooled": {
+    "aupru": 0.9603923280985662,
+    "aupru_01": 0.9228320620265252,
+    "pro_at_005": 0.9681568815664795,
+    "pro_at_01": 0.9759480540216933,
+    "n_regions": 118,
+    "n_images": 132
+  },
+  "per_class": [
+    {
+      "category": "capsule",
+      "aupru": 0.9603923280985662,
+      "aupru_01": 0.9228320620265252,
+      "pro_at_005": 0.9681568815664795,
+      "pro_at_01": 0.9759480540216933,
+      "pixel_auroc": 0.9849376723632393,
+      "n_regions": 118,
+      "n_images": 132
+    }
+  ],
+  "images": [
+    {
+      "category": "capsule",
+      "images": 132,
+      "missing_masks": 0,
+      "total": 132,
+      "defect_images": 109
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\14_capsule12\\12_capsule_seed_001\\pixel_dumps"
+  }
+}

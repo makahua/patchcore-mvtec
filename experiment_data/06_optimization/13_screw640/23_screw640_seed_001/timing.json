@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 135.599,
+  "per_category": [
+    {
+      "category": "screw",
+      "latency_ms": 67.41,
+      "latency_p95_ms": 68.4,
+      "build_seconds": 98.0,
+      "peak_gpu_mb": 329.3,
+      "peak_cpu_mb": 2840.0,
+      "bank_file": "banks\\screw.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

@@ -562,15 +562,28 @@ def run_category(args, cat, device):
     #   expanded : 旧实现，先展开成 9x1536 再选点（候选池与选点成本都 ×9）
     t0 = time.time()
     use_base = bool(args.neighbors) and args.neighbor_coreset == 'base'
+    # --pool-cap：候选池上限（控制内存）。640 输入下 224 张 × 6400 patch × 1536
+    # 的单精度池约 8.8 GB，cat 峰值翻倍；抽样到 15 万候选后约 0.9 GB，
+    # 与 320 基线的贪心候选量同量级。抽样按 seed 固定，可复现。
+    quota = 0
+    if args.pool_cap > 0 and train_imgs:
+        quota = max(1, int(args.pool_cap) // len(train_imgs))
     bank, base_maps = [], []
+    if quota and use_base:
+        print(f'[{cat}] 注意：--pool-cap 在 base 邻域模式下不生效（需要完整空间网格做展开）')
     with torch.no_grad():
-        for p in train_imgs:
+        for ii, p in enumerate(train_imgs):
             feat = model(load_img(p, args.size, args.preprocess, args.aspect_crop).to(device))
             if use_base:
                 base_maps.append(base_desc(feat).squeeze(0).detach().cpu())
             else:
                 emb, _ = embed(feat, args.neighbors, args.neighbor_pad)
-                bank.append(emb.squeeze(0).detach().cpu())
+                e = emb.squeeze(0).detach().cpu()
+                if quota and e.shape[0] > quota:
+                    rs = np.random.RandomState(args.seed * 10007 + ii)
+                    pick = np.sort(rs.choice(e.shape[0], size=quota, replace=False))
+                    e = e[torch.from_numpy(pick)]
+                bank.append(e)
     if use_base:
         if args.neighbor_pad == 'roll':
             print(f'[{cat}] 注意：base 选点不支持环形填充，按 zero 处理（--neighbor-pad roll 只在 expanded 模式下生效）')
@@ -588,6 +601,10 @@ def run_category(args, cat, device):
         bank_desc = f'{tuple(flat.shape)} (base) -> {len(sel)} 点 → 9 邻域展开'
     else:
         bank = torch.cat(bank, 0)
+        if quota:
+            full = int(len(train_imgs)) * int(args.size) * int(args.size) // 64
+            print(f'[{cat}] pool cap: {bank.shape[0]} / ~{full} patches '
+                  f'({100.0 * bank.shape[0] / max(1, full):.1f}%)')
         if args.coreset_method == 'projected-greedy':
             mem, _ = coreset_projected_greedy(bank, args.coreset_ratio, args.seed,
                                               args.projection_dim, args.starting_points, device)
@@ -792,6 +809,8 @@ def main():
     ap.add_argument('--projection-dim', type=int, default=128)
     ap.add_argument('--starting-points', type=int, default=10)
     ap.add_argument('--greedy', type=int, default=0, help='k-center 贪心保留 patch 数，0=用随机抽样')
+    ap.add_argument('--pool-cap', type=int, default=0,
+                    help='候选池上限（patch 总数，0=不限）；640 等大输入建议 150000 以控制内存')
     ap.add_argument('--thr-pct', type=float, default=99.0, help='阈值取训练集分数的百分位，漏检优先就调高')
     ap.add_argument('--score-agg', choices=['max', 'top5'], default='max',
                     help='图像分数：max=最高 patch（默认），top5=最高 5%% patch 平均')

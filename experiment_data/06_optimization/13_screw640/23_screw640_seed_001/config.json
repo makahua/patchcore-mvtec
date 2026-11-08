@@ -1,0 +1,62 @@
+{
+  "command": [
+    "E:\\面试项目文件夹\\patchcore-mvtec\\.venv\\Scripts\\python.exe",
+    "patchcore_demo.py",
+    "--category",
+    "screw",
+    "--layers",
+    "2+3",
+    "--size",
+    "640",
+    "--greedy",
+    "2000",
+    "--pool-cap",
+    "150000",
+    "--calib-ratio",
+    "0.3",
+    "--thr-pct",
+    "99.5",
+    "--blur-sigma",
+    "2",
+    "--split-seed",
+    "42",
+    "--seed",
+    "1",
+    "--weights",
+    "torch_cache/wide_resnet50_2_timm.pth",
+    "--data",
+    "MVTec/mvtech_anomaly_detection",
+    "--dump-pixel",
+    "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\13_screw640\\23_screw640_seed_001\\pixel_dumps",
+    "--save-bank",
+    "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\13_screw640\\23_screw640_seed_001\\banks",
+    "--out",
+    "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\13_screw640\\23_screw640_seed_001\\native"
+  ],
+  "working_directory": "E:\\面试项目文件夹\\patchcore-mvtec",
+  "started_epoch": 1794147871.7712414,
+  "finished_epoch": 1794148007.3706167,
+  "duration_seconds": 135.599,
+  "python": "3.13.9",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.5.4",
+  "torch": "2.7.0+cu128",
+  "torchvision": "0.22.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "git_commit": "3ea9c621f43cc6ab579d9f445bf6cf746c907657",
+  "weights": "E:\\面试项目文件夹\\patchcore-mvtec\\torch_cache\\wide_resnet50_2_timm.pth",
+  "weights_sha256": "18108459320717df6bf3f3673c0812203d1cffe979cfda43803389354947dc64",
+  "native_results": "experiment_data\\06_optimization\\13_screw640\\23_screw640_seed_001\\native\\results.json",
+  "manifests": [
+    "experiment_data\\06_optimization\\13_screw640\\23_screw640_seed_001\\native\\manifests\\screw.json"
+  ],
+  "note": "MVTec test scores are development results; this wrapper does not make them an independent holdout.",
+  "source_sha256": {
+    "patchcore_demo.py": "33a7e90071f7bebb0fb38aae3df9437be8cbc6b4af706c8b706f8fe49bd4e22a",
+    "tools/run_experiment.py": "95c9262ca6eb061e6984d021f539814f58f3a9ad3825091d13ecfe12ae0a27a8"
+  },
+  "banks": [
+    "experiment_data\\06_optimization\\13_screw640\\23_screw640_seed_001\\banks\\screw.npz"
+  ]
+}
