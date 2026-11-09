@@ -29,7 +29,7 @@
 | 精度与批量 | FP32、batch=1 |
 | 数据角色 | MVTec development-only |
 
-三个 seed 共用完全相同的建库、标定、测试清单，只改变 coreset 随机性。所有参数显式记录在 `config.json`；除 Git commit 外还记录 `source_sha256`（`patchcore_demo.py` 与 `tools/run_experiment.py` 的实际内容哈希），防止未提交代码让记录失真。
+三个 seed 共用完全相同的建库、标定、测试清单，只改变 coreset 随机性。所有参数显式记录在 `config.json`；除 Git commit 外还记录 `source_sha256`（`patchcore_demo.py`、`tools/run_experiment.py` 与 `patchcore/*.py` 的实际内容哈希），防止未提交代码让记录失真。
 
 ### 三档判定定义
 

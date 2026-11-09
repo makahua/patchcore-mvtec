@@ -29,7 +29,7 @@ jobs:
           python -m pip install numpy pytest
 
       - name: Syntax check
-        run: python -m compileall -q patchcore_demo.py classify.py analyze.py pyqt_demo.py make_synthetic.py tools tests
+        run: python -m compileall -q patchcore patchcore_demo.py classify.py analyze.py pyqt_demo.py make_synthetic.py tools tests
 
       - name: Unit tests
         run: python -m pytest tests -q

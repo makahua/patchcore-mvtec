@@ -21,7 +21,11 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_FILES = ("patchcore_demo.py", "tools/run_experiment.py")
+SOURCE_FILES = ("patchcore_demo.py", "tools/run_experiment.py") + tuple(
+    str(x.relative_to(ROOT)) for x in sorted((ROOT / "patchcore").glob("*.py"))
+) + tuple(
+    str(x.relative_to(ROOT)) for x in sorted((ROOT / "patchcore").glob("*.py"))
+)
 
 
 def sha256(path: Path) -> str | None:

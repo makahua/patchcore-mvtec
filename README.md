@@ -151,6 +151,7 @@ PRO/AUPRO 按 GT 连通域等权，新协议 macro **AUPRO@30% 0.9229 ± 0.0012*
 
 ```
 patchcore-mvtec/
+  patchcore/           # 拆包后的可复用模块：imaging / features / coreset / scoring / calibration
   patchcore_demo.py    # 主实验：建库 → 评分 → AUROC/时延/显存（--greedy/--calib-ratio/--perturb-*）
   classify.py          # 三档判定：build/infer/eval/report（report 支持 --conformal / --cost）
   analyze.py           # 批量结果对照；pyqt_demo.py 单图 GUI
