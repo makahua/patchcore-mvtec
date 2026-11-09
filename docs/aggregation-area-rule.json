@@ -1,0 +1,167 @@
+[
+ {
+  "category": "screw",
+  "n_masks": 119,
+  "median_area": 0.0028791427612304688,
+  "p90_area": 0.005859947204589845,
+  "max": 0.9736967957914873,
+  "top1pct": 0.9830907972945275,
+  "top5pct": 0.9723987155837944,
+  "best_mode": "top1pct",
+  "best_gain": 0.009394001503040261
+ },
+ {
+  "category": "capsule",
+  "n_masks": 109,
+  "median_area": 0.004295,
+  "p90_area": 0.03280080000000002,
+  "max": 0.990493285467358,
+  "top1pct": 0.9972078181092939,
+  "top5pct": 0.9945485972610025,
+  "best_mode": "top1pct",
+  "best_gain": 0.006714532641935889
+ },
+ {
+  "category": "leather",
+  "n_masks": 92,
+  "median_area": 0.004615306854248047,
+  "p90_area": 0.016951942443847658,
+  "max": 1.0,
+  "top1pct": 1.0,
+  "top5pct": 0.9995471014492754,
+  "best_mode": "max",
+  "best_gain": 0.0
+ },
+ {
+  "category": "grid",
+  "n_masks": 57,
+  "median_area": 0.006014823913574219,
+  "p90_area": 0.019844055175781247,
+  "max": 0.9708994708994708,
+  "top1pct": 0.9729880256196045,
+  "top5pct": 0.961849067112225,
+  "best_mode": "top1pct",
+  "best_gain": 0.002088554720133695
+ },
+ {
+  "category": "pill",
+  "n_masks": 141,
+  "median_area": 0.0103265625,
+  "p90_area": 0.0549671875,
+  "max": 0.9518548827059465,
+  "top1pct": 0.9534915439170759,
+  "top5pct": 0.9495362793235134,
+  "best_mode": "top1pct",
+  "best_gain": 0.0016366612111293755
+ },
+ {
+  "category": "toothbrush",
+  "n_masks": 30,
+  "median_area": 0.010778427124023438,
+  "p90_area": 0.05198860168457032,
+  "max": 0.9425925925925925,
+  "top1pct": 0.975,
+  "top5pct": 0.9981481481481481,
+  "best_mode": "top5pct",
+  "best_gain": 0.05555555555555558
+ },
+ {
+  "category": "carpet",
+  "n_masks": 89,
+  "median_area": 0.014757156372070312,
+  "p90_area": 0.05342235565185547,
+  "max": 0.9844836811128946,
+  "top1pct": 0.9844836811128946,
+  "top5pct": 0.972980203317282,
+  "best_mode": "max",
+  "best_gain": 0.0
+ },
+ {
+  "category": "hazelnut",
+  "n_masks": 70,
+  "median_area": 0.016158103942871094,
+  "p90_area": 0.06321306228637695,
+  "max": 0.9998214285714285,
+  "top1pct": 1.0,
+  "top5pct": 1.0,
+  "best_mode": "top1pct",
+  "best_gain": 0.00017857142857147235
+ },
+ {
+  "category": "transistor",
+  "n_masks": 40,
+  "median_area": 0.02028369903564453,
+  "p90_area": 0.4051957130432129,
+  "max": 0.9958333333333332,
+  "top1pct": 0.9948611111111111,
+  "top5pct": 0.9897222222222223,
+  "best_mode": "max",
+  "best_gain": 0.0
+ },
+ {
+  "category": "zipper",
+  "n_masks": 119,
+  "median_area": 0.0235443115234375,
+  "p90_area": 0.047473144531250004,
+  "max": 0.9658175770308123,
+  "top1pct": 0.9714635854341737,
+  "top5pct": 0.9816176470588235,
+  "best_mode": "trimmed",
+  "best_gain": 0.018601190476190466
+ },
+ {
+  "category": "wood",
+  "n_masks": 60,
+  "median_area": 0.02895498275756836,
+  "p90_area": 0.1000713348388672,
+  "max": 0.9864035087719297,
+  "top1pct": 0.9880116959064327,
+  "top5pct": 0.9891812865497075,
+  "best_mode": "top5pct",
+  "best_gain": 0.002777777777777768
+ },
+ {
+  "category": "metal_nut",
+  "n_masks": 93,
+  "median_area": 0.03671428571428571,
+  "p90_area": 0.4822481632653061,
+  "max": 0.997882046269143,
+  "top1pct": 0.9972303681981102,
+  "top5pct": 0.9887585532746823,
+  "best_mode": "max",
+  "best_gain": 0.0
+ },
+ {
+  "category": "cable",
+  "n_masks": 92,
+  "median_area": 0.036808013916015625,
+  "p90_area": 0.07988204956054691,
+  "max": 0.9855697151424287,
+  "top1pct": 0.9895052473763118,
+  "top5pct": 0.9926911544227885,
+  "best_mode": "top5pct",
+  "best_gain": 0.007121439280359798
+ },
+ {
+  "category": "bottle",
+  "n_masks": 63,
+  "median_area": 0.05717777777777778,
+  "p90_area": 0.15134493827160492,
+  "max": 1.0,
+  "top1pct": 1.0,
+  "top5pct": 1.0,
+  "best_mode": "max",
+  "best_gain": 0.0
+ },
+ {
+  "category": "tile",
+  "n_masks": 84,
+  "median_area": 0.07930342970521542,
+  "p90_area": 0.20334141156462587,
+  "max": 1.0,
+  "top1pct": 1.0,
+  "top5pct": 1.0,
+  "best_mode": "max",
+  "best_gain": 0.0
+ }
+]

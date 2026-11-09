@@ -1,0 +1,60 @@
+{
+  "command": [
+    "E:\\面试项目文件夹\\patchcore-mvtec\\.venv\\Scripts\\python.exe",
+    "patchcore_demo.py",
+    "--category",
+    "toothbrush",
+    "--data",
+    "MVTec\\mvtech_anomaly_detection",
+    "--size",
+    "320",
+    "--greedy",
+    "2000",
+    "--calib-ratio",
+    "0.3",
+    "--thr-pct",
+    "99.5",
+    "--blur-sigma",
+    "2",
+    "--split-seed",
+    "42",
+    "--seed",
+    "0",
+    "--weights",
+    "torch_cache\\wide_resnet50_2_timm.pth",
+    "--embed-mode",
+    "unfold_pool",
+    "--embed-dim",
+    "1024",
+    "--save-bank",
+    "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\20_embed\\toothbrush_seed_000\\banks",
+    "--out",
+    "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\20_embed\\toothbrush_seed_000\\native"
+  ],
+  "working_directory": "E:\\面试项目文件夹\\patchcore-mvtec",
+  "started_epoch": 1794233317.0766325,
+  "finished_epoch": 1794233360.5033674,
+  "duration_seconds": 43.427,
+  "python": "3.13.9",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.5.4",
+  "torch": "2.7.0+cu128",
+  "torchvision": "0.22.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "git_commit": "42cdfdf95da70f78df12043518acb5929e086b3d",
+  "weights": "E:\\面试项目文件夹\\patchcore-mvtec\\torch_cache\\wide_resnet50_2_timm.pth",
+  "weights_sha256": "18108459320717df6bf3f3673c0812203d1cffe979cfda43803389354947dc64",
+  "native_results": "experiment_data\\06_optimization\\20_embed\\toothbrush_seed_000\\native\\results.json",
+  "manifests": [
+    "experiment_data\\06_optimization\\20_embed\\toothbrush_seed_000\\native\\manifests\\toothbrush.json"
+  ],
+  "note": "MVTec test scores are development results; this wrapper does not make them an independent holdout.",
+  "source_sha256": {
+    "patchcore_demo.py": "e1cad73deb7edb4c554efc5f41d45625b7bdfbb3c4c55b17cdb379865417bce4",
+    "tools/run_experiment.py": "effe2b280510dadbd31c2c7cbe7968ec0ba7111c9dc703dafb0ba2d5b1f142a4"
+  },
+  "banks": [
+    "experiment_data\\06_optimization\\20_embed\\toothbrush_seed_000\\banks\\toothbrush.npz"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "macro": 1.0,
+  "per_class": {
+    "toothbrush": {
+      "image_auroc": 1.0,
+      "recall_at_p995": 1.0,
+      "n_train": 60,
+      "n_test": 42,
+      "n_patch": 47040,
+      "bank": 4704,
+      "seconds": 6.4
+    }
+  },
+  "config": {
+    "data": "E:\\面试项目文件夹\\patchcore-mvtec\\MVTec\\mvtech_anomaly_detection",
+    "weights": "torch_cache\\wide_resnet50_2_v1.pth",
+    "categories": "toothbrush",
+    "resize": 256,
+    "imagesize": 224,
+    "pct": 0.1,
+    "seed": 0,
+    "limit_train": 0,
+    "stretch": false,
+    "no_norm": true,
+    "no_antialias": false,
+    "out": "experiment_data\\06_optimization\\18_replica\\iso_nonorm.json"
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "macro": 0.9865,
+  "per_class": {
+    "bottle": {
+      "image_auroc": 0.9984,
+      "recall_at_p995": 0.9841,
+      "n_train": 209,
+      "n_test": 83,
+      "n_patch": 334400,
+      "bank": 3344,
+      "seconds": 15.4
+    },
+    "cable": {
+      "image_auroc": 0.9588,
+      "recall_at_p995": 0.8261,
+      "n_train": 224,
+      "n_test": 150,
+      "n_patch": 358400,
+      "bank": 3584,
+      "seconds": 29.7
+    },
+    "capsule": {
+      "image_auroc": 0.9709,
+      "recall_at_p995": 0.4771,
+      "n_train": 219,
+      "n_test": 132,
+      "n_patch": 350400,
+      "bank": 3504,
+      "seconds": 29.1
+    },
+    "carpet": {
+      "image_auroc": 0.9731,
+      "recall_at_p995": 0.8989,
+      "n_train": 280,
+      "n_test": 117,
+      "n_patch": 448000,
+      "bank": 4480,
+      "seconds": 39.2
+    },
+    "grid": {
+      "image_auroc": 0.985,
+      "recall_at_p995": 0.9825,
+      "n_train": 264,
+      "n_test": 78,
+      "n_patch": 422400,
+      "bank": 4224,
+      "seconds": 22.4
+    },
+    "hazelnut": {
+      "image_auroc": 1.0,
+      "recall_at_p995": 1.0,
+      "n_train": 391,
+      "n_test": 110,
+      "n_patch": 625600,
+      "bank": 6256,
+      "seconds": 443.2
+    },
+    "leather": {
+      "image_auroc": 0.9993,
+      "recall_at_p995": 0.9891,
+      "n_train": 245,
+      "n_test": 124,
+      "n_patch": 392000,
+      "bank": 3920,
+      "seconds": 34.1
+    },
+    "metal_nut": {
+      "image_auroc": 0.9961,
+      "recall_at_p995": 0.9677,
+      "n_train": 220,
+      "n_test": 115,
+      "n_patch": 352000,
+      "bank": 3520,
+      "seconds": 22.4
+    },
+    "pill": {
+      "image_auroc": 0.9771,
+      "recall_at_p995": 0.9291,
+      "n_train": 267,
+      "n_test": 167,
+      "n_patch": 427200,
+      "bank": 4272,
+      "seconds": 32.7
+    },
+    "screw": {
+      "image_auroc": 0.9898,
+      "recall_at_p995": 0.8571,
+      "n_train": 320,
+      "n_test": 160,
+      "n_patch": 512000,
+      "bank": 5120,
+      "seconds": 45.2
+    },
+    "tile": {
+      "image_auroc": 0.9895,
+      "recall_at_p995": 0.9762,
+      "n_train": 230,
+      "n_test": 117,
+      "n_patch": 368000,
+      "bank": 3680,
+      "seconds": 39.5
+    },
+    "toothbrush": {
+      "image_auroc": 1.0,
+      "recall_at_p995": 1.0,
+      "n_train": 60,
+      "n_test": 42,
+      "n_patch": 96000,
+      "bank": 960,
+      "seconds": 5.9
+    },
+    "transistor": {
+      "image_auroc": 0.9704,
+      "recall_at_p995": 0.925,
+      "n_train": 213,
+      "n_test": 100,
+      "n_patch": 340800,
+      "bank": 3408,
+      "seconds": 27.8
+    },
+    "wood": {
+      "image_auroc": 0.9965,
+      "recall_at_p995": 0.9833,
+      "n_train": 247,
+      "n_test": 79,
+      "n_patch": 395200,
+      "bank": 3952,
+      "seconds": 32.6
+    },
+    "zipper": {
+      "image_auroc": 0.9932,
+      "recall_at_p995": 0.8824,
+      "n_train": 240,
+      "n_test": 151,
+      "n_patch": 384000,
+      "bank": 3840,
+      "seconds": 24.3
+    }
+  },
+  "config": {
+    "data": "E:\\面试项目文件夹\\patchcore-mvtec\\MVTec\\mvtech_anomaly_detection",
+    "weights": "E:\\面试项目文件夹\\patchcore-mvtec\\torch_cache\\wide_resnet50_2_v1.pth",
+    "categories": "all",
+    "resize": 366,
+    "imagesize": 320,
+    "pct": 0.01,
+    "seed": 22,
+    "limit_train": 0,
+    "out": "experiment_data\\06_optimization\\18_replica\\full_seed22.json"
+  }
+}

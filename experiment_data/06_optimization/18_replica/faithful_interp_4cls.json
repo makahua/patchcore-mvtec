@@ -1,0 +1,52 @@
+{
+  "macro": 0.9727,
+  "per_class": {
+    "cable": {
+      "image_auroc": 0.958,
+      "recall_at_p995": 0.6304,
+      "n_train": 224,
+      "n_test": 150,
+      "n_patch": 358400,
+      "bank": 3584,
+      "seconds": 33.5
+    },
+    "capsule": {
+      "image_auroc": 0.9645,
+      "recall_at_p995": 0.4495,
+      "n_train": 219,
+      "n_test": 132,
+      "n_patch": 350400,
+      "bank": 3504,
+      "seconds": 27.6
+    },
+    "transistor": {
+      "image_auroc": 0.9767,
+      "recall_at_p995": 0.95,
+      "n_train": 213,
+      "n_test": 100,
+      "n_patch": 340800,
+      "bank": 3408,
+      "seconds": 25.0
+    },
+    "tile": {
+      "image_auroc": 0.9917,
+      "recall_at_p995": 0.9405,
+      "n_train": 230,
+      "n_test": 117,
+      "n_patch": 368000,
+      "bank": 3680,
+      "seconds": 23.7
+    }
+  },
+  "config": {
+    "data": "E:\\面试项目文件夹\\patchcore-mvtec\\MVTec\\mvtech_anomaly_detection",
+    "weights": "E:\\面试项目文件夹\\patchcore-mvtec\\torch_cache\\wide_resnet50_2_v1.pth",
+    "categories": "cable,capsule,transistor,tile",
+    "resize": 366,
+    "imagesize": 320,
+    "pct": 0.01,
+    "seed": 22,
+    "limit_train": 0,
+    "out": "experiment_data\\06_optimization\\18_replica\\faithful_interp_4cls.json"
+  }
+}

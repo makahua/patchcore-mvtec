@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 288.247,
+  "per_category": [
+    {
+      "category": "hazelnut",
+      "latency_ms": 20.47,
+      "latency_p95_ms": 21.66,
+      "build_seconds": 261.5,
+      "peak_gpu_mb": 189.6,
+      "peak_cpu_mb": 6272.3,
+      "bank_file": "banks\\hazelnut.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

@@ -1,0 +1,64 @@
+{
+  "macro": 0.981,
+  "per_class": {
+    "cable": {
+      "image_auroc": 0.9893,
+      "recall_at_p995": 0.913,
+      "n_train": 224,
+      "n_test": 150,
+      "n_patch": 175616,
+      "bank": 17561,
+      "seconds": 34.7
+    },
+    "capsule": {
+      "image_auroc": 0.9753,
+      "recall_at_p995": 0.6972,
+      "n_train": 219,
+      "n_test": 132,
+      "n_patch": 171696,
+      "bank": 17169,
+      "seconds": 32.3
+    },
+    "carpet": {
+      "image_auroc": 0.9791,
+      "recall_at_p995": 0.8989,
+      "n_train": 280,
+      "n_test": 117,
+      "n_patch": 219520,
+      "bank": 21952,
+      "seconds": 42.6
+    },
+    "screw": {
+      "image_auroc": 0.968,
+      "recall_at_p995": 0.6134,
+      "n_train": 320,
+      "n_test": 160,
+      "n_patch": 250880,
+      "bank": 25088,
+      "seconds": 44.0
+    },
+    "transistor": {
+      "image_auroc": 0.9933,
+      "recall_at_p995": 0.95,
+      "n_train": 213,
+      "n_test": 100,
+      "n_patch": 166992,
+      "bank": 16699,
+      "seconds": 30.7
+    }
+  },
+  "config": {
+    "data": "E:\\面试项目文件夹\\patchcore-mvtec\\MVTec\\mvtech_anomaly_detection",
+    "weights": "E:\\面试项目文件夹\\patchcore-mvtec\\torch_cache\\wide_resnet50_2_v1.pth",
+    "categories": "cable,capsule,carpet,screw,transistor",
+    "resize": 256,
+    "imagesize": 224,
+    "pct": 0.1,
+    "seed": 0,
+    "limit_train": 0,
+    "stretch": false,
+    "no_norm": false,
+    "no_antialias": true,
+    "out": "experiment_data\\06_optimization\\18_replica\\im224_noaa_5cls.json"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "macro": 0.7133,
+  "per_class": {
+    "screw": {
+      "image_auroc": 0.7133,
+      "recall_at_p995": 0.2521,
+      "n_train": 20,
+      "n_test": 160,
+      "n_patch": 32000,
+      "bank": 320,
+      "seconds": 9.1
+    }
+  },
+  "config": {
+    "data": "E:\\面试项目文件夹\\patchcore-mvtec\\MVTec\\mvtech_anomaly_detection",
+    "weights": "E:\\面试项目文件夹\\patchcore-mvtec\\torch_cache\\wide_resnet50_2_v1.pth",
+    "categories": "screw",
+    "resize": 366,
+    "imagesize": 320,
+    "pct": 0.01,
+    "seed": 22,
+    "limit_train": 20,
+    "out": "experiment_data\\06_optimization\\18_replica\\smoke_screw20.json"
+  }
+}

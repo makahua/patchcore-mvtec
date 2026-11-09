@@ -1,0 +1,70 @@
+{
+  "macro": 0.9906,
+  "per_class": {
+    "toothbrush": {
+      "image_auroc": 1.0,
+      "recall_at_p995": 1.0,
+      "n_train": 60,
+      "n_test": 42,
+      "n_patch": 96000,
+      "bank": 960,
+      "seconds": 5.8
+    },
+    "pill": {
+      "image_auroc": 0.9771,
+      "recall_at_p995": 0.9291,
+      "n_train": 267,
+      "n_test": 167,
+      "n_patch": 427200,
+      "bank": 4272,
+      "seconds": 30.9
+    },
+    "zipper": {
+      "image_auroc": 0.9932,
+      "recall_at_p995": 0.8824,
+      "n_train": 240,
+      "n_test": 151,
+      "n_patch": 384000,
+      "bank": 3840,
+      "seconds": 24.1
+    },
+    "grid": {
+      "image_auroc": 0.985,
+      "recall_at_p995": 0.9825,
+      "n_train": 264,
+      "n_test": 78,
+      "n_patch": 422400,
+      "bank": 4224,
+      "seconds": 25.1
+    },
+    "screw": {
+      "image_auroc": 0.9898,
+      "recall_at_p995": 0.8571,
+      "n_train": 320,
+      "n_test": 160,
+      "n_patch": 512000,
+      "bank": 5120,
+      "seconds": 274.6
+    },
+    "bottle": {
+      "image_auroc": 0.9984,
+      "recall_at_p995": 0.9841,
+      "n_train": 209,
+      "n_test": 83,
+      "n_patch": 334400,
+      "bank": 3344,
+      "seconds": 116.2
+    }
+  },
+  "config": {
+    "data": "E:\\面试项目文件夹\\patchcore-mvtec\\MVTec\\mvtech_anomaly_detection",
+    "weights": "E:\\面试项目文件夹\\patchcore-mvtec\\torch_cache\\wide_resnet50_2_v1.pth",
+    "categories": "toothbrush,pill,zipper,grid,screw,bottle",
+    "resize": 366,
+    "imagesize": 320,
+    "pct": 0.01,
+    "seed": 22,
+    "limit_train": 0,
+    "out": "experiment_data\\06_optimization\\18_replica\\pilot_seed22.json"
+  }
+}

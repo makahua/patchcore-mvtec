@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 147.331,
+  "per_category": [
+    {
+      "category": "bottle",
+      "latency_ms": 20.17,
+      "latency_p95_ms": 21.04,
+      "build_seconds": 125.6,
+      "peak_gpu_mb": 190.0,
+      "peak_cpu_mb": 3847.2,
+      "bank_file": "banks\\bottle.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}
