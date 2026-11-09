@@ -157,11 +157,11 @@ patchcore-mvtec/
   configs/             # 按类覆盖配置（patchcore_profile.json：screw/capsule → 1+2）
   tools/               # pro_aupro / latency_breakdown / conformal_threshold / check_links / 数据准备
   tests/               # 35 条纯 numpy 测试（15 指标+成本、8 PRO/AUPRO、5 bank meta、7 稳健聚合）
-  docs/                # 26 篇方法与实验文档 + pair-baseline.json（主表数字）+ thresholds.json（逐类阈值）
+  docs/                # 27 篇方法与实验文档 + pair-baseline.json（主表数字）+ thresholds.json（逐类阈值）
   experiment_data/     # 结果索引（大文件由 .gitignore 排除）
 ```
 
-文档索引：[vs-upstream](docs/vs-upstream.md)｜[分辨率与频率](docs/screw-resolution.md)｜[Phase 1 笔记](docs/phase1-notes.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[基线验收](docs/baseline-acceptance.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)｜[特征层消融](docs/features-ablation.md)｜[成本模型](docs/cost-model.md)｜[PRO/AUPRO](docs/pro-aupro.md)｜[时延拆解](docs/latency-breakdown.md)｜[端到端上限估算](docs/e2e-ceiling.md)｜[鲁棒性](docs/robustness.md)｜[预处理对照](docs/preprocessing-ablation.md)｜[邻域填充](docs/neighbor-ablation.md)｜[鲁棒聚合](docs/robust-aggregation.md)｜[split 敏感性](docs/split-seed-check.md)｜[表征与几何试点](docs/representation-pilot.md)｜[阈值表](docs/thresholds.json)｜[面试笔记](docs/interview-notes.md)。
+文档索引：[vs-upstream](docs/vs-upstream.md)｜[分辨率与频率](docs/screw-resolution.md)｜[Phase 1 笔记](docs/phase1-notes.md)｜[实验协议](docs/EXPERIMENT_PROTOCOL.md)｜[难类失败分析](docs/FAILURE_ANALYSIS.md)｜[演示流程](docs/INTERVIEW_DEMO.md)｜[复现说明](docs/REPRODUCE.md)｜[VisA](docs/VISA.md)｜[最新优化计划](docs/OPTIMIZATION_PLAN.md)｜[安装与数据](docs/install.md)｜[基线验收](docs/baseline-acceptance.md)｜[coreset 预算](docs/coreset-budget.md)｜[阈值稳定性](docs/threshold-stability.md)｜[特征层消融](docs/features-ablation.md)｜[成本模型](docs/cost-model.md)｜[PRO/AUPRO](docs/pro-aupro.md)｜[时延拆解](docs/latency-breakdown.md)｜[端到端上限估算](docs/e2e-ceiling.md)｜[鲁棒性](docs/robustness.md)｜[预处理对照](docs/preprocessing-ablation.md)｜[邻域填充](docs/neighbor-ablation.md)｜[鲁棒聚合](docs/robust-aggregation.md)｜[split 敏感性](docs/split-seed-check.md)｜[表征与几何试点](docs/representation-pilot.md)｜[按类选择检验](docs/perclass-selection-check.md)｜[阈值表](docs/thresholds.json)｜[面试笔记](docs/interview-notes.md)。
 
 ## 许可
 
