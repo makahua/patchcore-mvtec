@@ -80,12 +80,13 @@ def list_images(d):
     return sorted(out)
 
 
-def load_img(path, size, preprocess='stretch', aspect_crop=0.0):
+def load_img(path, size, preprocess='stretch', aspect_crop=0.0, crop_zoom=1.0):
     """读图 → [1,3,S,S]。
 
     preprocess:
       stretch   —— 直接 resize 到 S×S（会改变长宽比；MVTec 全为方图，故与 letterbox 等价）
       letterbox —— 等比缩放到长边 = S，再用均值灰 (114) 居中补成 S×S（保住长宽比）
+      crop      —— 将短边缩放到 S（长边≥S）后中心裁剪 S×S（上游 MVtec 几何：Resize(size)+CenterCrop(size)）
     aspect_crop:
       模拟非方形视野：先中心裁剪成 h/w = 该比例（如 0.75 ≈ 4:3 相机），再走上面的预处理。
       数据集本身全是方图，只有裁剪之后「拉伸畸变」才真正被引入，这就是本开关的用途。
@@ -96,7 +97,14 @@ def load_img(path, size, preprocess='stretch', aspect_crop=0.0):
         ch = min(h, max(1, int(round(w * aspect_crop))))
         top = (h - ch) // 2
         im = im.crop((0, top, w, top + ch))
-    if preprocess == 'letterbox':
+    if preprocess == 'crop':
+        w, h = im.size
+        s = (size * max(1.0, crop_zoom)) / float(min(w, h))
+        nw, nh = max(size, int(round(w * s))), max(size, int(round(h * s)))
+        im = im.resize((nw, nh), Image.BILINEAR)
+        left, top = (nw - size) // 2, (nh - size) // 2
+        im = im.crop((left, top, left + size, top + size))
+    elif preprocess == 'letterbox':
         w, h = im.size
         s = size / float(max(w, h))
         nw, nh = max(1, int(round(w * s))), max(1, int(round(h * s)))
@@ -110,7 +118,7 @@ def load_img(path, size, preprocess='stretch', aspect_crop=0.0):
     return x
 
 
-def load_mask(path, size, preprocess='stretch', aspect_crop=0.0):
+def load_mask(path, size, preprocess='stretch', aspect_crop=0.0, crop_zoom=1.0):
     """与 load_img 完全相同的几何变换，但用 NEAREST、灰边填 0，返回 S×S 的 'L' 图。
 
     只有几何变换（裁剪 / letterbox）需要同步到 mask；亮度、噪声、模糊不动 mask。
@@ -121,7 +129,14 @@ def load_mask(path, size, preprocess='stretch', aspect_crop=0.0):
         ch = min(h, max(1, int(round(w * aspect_crop))))
         top = (h - ch) // 2
         im = im.crop((0, top, w, top + ch))
-    if preprocess == 'letterbox':
+    if preprocess == 'crop':
+        w, h = im.size
+        s = (size * max(1.0, crop_zoom)) / float(min(w, h))
+        nw, nh = max(size, int(round(w * s))), max(size, int(round(h * s)))
+        im = im.resize((nw, nh), Image.NEAREST)
+        left, top = (nw - size) // 2, (nh - size) // 2
+        im = im.crop((left, top, left + size, top + size))
+    elif preprocess == 'letterbox':
         w, h = im.size
         s = size / float(max(w, h))
         nw, nh = max(1, int(round(w * s))), max(1, int(round(h * s)))
@@ -219,6 +234,17 @@ class Features(torch.nn.Module):
         return torch.cat([f1, f2u, f3u], dim=1)             # B,1792,H/4,W/4
 
 
+EMBED_STATE = {'mode': 'avgpool', 'dim': 1024}
+
+
+def unfold_pool(feat, dim):
+    """unfold 3x3 -> C*9 每 patch -> adaptive_avg_pool1d 到 dim（对齐上游 MeanMapper）。"""
+    b, c, h, w = feat.shape
+    u = F.unfold(feat, kernel_size=3, padding=1)          # (B, C*9, h*w)
+    u = u.transpose(1, 2).contiguous()                    # (B, h*w, C*9)
+    return F.adaptive_avg_pool1d(u, int(dim))             # (B, h*w, dim)
+
+
 def base_desc(feat):
     """3x3 邻域平均后的基础 patch 描述子：(B,C,h,w)，不做 9 邻域拼接。"""
     return F.avg_pool2d(feat, 3, stride=1, padding=1)
@@ -232,6 +258,9 @@ def embed(feat, neighbors=False, pad='zero'):
       replicate —— 镜像/复制边界，避免 0 被当成真实特征
       roll   —— 旧实现，环形平移（会让左边缘看到右边缘，属于实现缺陷，仅用于复现旧结果）
     """
+    if EMBED_STATE.get('mode') == 'unfold_pool' and not neighbors:
+        p = unfold_pool(feat, EMBED_STATE.get('dim', 1024))
+        return p.contiguous(), (int(feat.shape[-2]), int(feat.shape[-1]))
     p = base_desc(feat)                                    # 3x3 邻域平均，压噪
     if neighbors:
         outs = []
@@ -248,6 +277,36 @@ def embed(feat, neighbors=False, pad='zero'):
         p = torch.cat(outs, dim=1)
     b, c, h, w = p.shape
     return p.reshape(b, c, h * w).permute(0, 2, 1).contiguous(), (h, w)
+
+
+PCA_STATE = {}
+
+
+def fit_pca(feats, dim, whiten=False):
+    """在良品 patch 上拟合 PCA，返回 (mean (C,), comp (C, dim))。只看训练集，不看 test。"""
+    x = feats.float()
+    mean = x.mean(dim=0)
+    xc = x - mean
+    cov = (xc.t() @ xc) / max(1, x.shape[0])
+    evals, evecs = torch.linalg.eigh(cov)
+    order = torch.argsort(evals, descending=True)
+    evals, evecs = evals[order], evecs[:, order]
+    dim = max(1, min(int(dim), evecs.shape[1]))
+    comp = evecs[:, :dim]
+    if whiten:
+        comp = comp / torch.sqrt(evals[:dim].clamp_min(1e-8)).unsqueeze(0)
+    return mean, comp.contiguous()
+
+
+def apply_pca(emb):
+    """(N, C) -> (N, dim)。未启用时原样返回。"""
+    mean, comp = PCA_STATE.get('mean'), PCA_STATE.get('comp')
+    if mean is None or comp is None:
+        return emb
+    if mean.device != emb.device:                       # PCA 在 CPU 上拟合，打分时搬到当前设备
+        mean, comp = mean.to(emb.device), comp.to(emb.device)
+        PCA_STATE['mean'], PCA_STATE['comp'] = mean, comp
+    return (emb - mean) @ comp
 
 
 def gaussian_blur(x, k=5, sigma=2.0):
@@ -383,6 +442,7 @@ def score_from_feat(feat, mem, neighbors=False, score_agg='max', blur_sigma=2.0,
     """由单图特征图算 patch 分数图与图像分数（最近邻 + 可选模糊 + 聚合）。"""
     emb, (h, w) = embed(feat, neighbors, neighbor_pad)
     emb = emb.squeeze(0)                                    # N, C
+    emb = apply_pca(emb)                                    # --pca-dim 时降到低维再算距离
     # 分块算最近邻距离，避免显存炸
     mins = []
     if fp16:
@@ -459,7 +519,7 @@ def mask_for(path, label, test_dir, gt_dir, hw, args):
                              os.path.splitext(os.path.basename(rel))[0] + '.png')
         if os.path.exists(m):
             if args.aspect_crop > 0 or args.preprocess != 'stretch':
-                mimg = load_mask(m, args.size, args.preprocess, args.aspect_crop)
+                mimg = load_mask(m, args.size, args.preprocess, args.aspect_crop, args.crop_zoom)
                 mask = np.asarray(mimg.resize((hw, hw), Image.NEAREST)) > 128
             else:
                 mask = np.asarray(Image.open(m).convert('L').resize((hw, hw), Image.NEAREST)) > 128
@@ -485,12 +545,12 @@ def dump_suite(args, model, mem, device, cat, score_src, test_imgs, test_dir, gt
         base_seed = args.seed * 1000 + ci * 777
         cals, tests = [], []
         for i, p in enumerate(score_src):
-            x = load_img(p, args.size, args.preprocess, args.aspect_crop)
+            x = load_img(p, args.size, args.preprocess, args.aspect_crop, args.crop_zoom)
             if bright != 1.0 or noise or blur:
                 x = perturb_img(x, bright, noise, blur, base_seed + i)
             cals.append(_patch_map(model, mem, x, args, device, dtype))
         for i, p in enumerate(test_imgs):
-            x = load_img(p, args.size, args.preprocess, args.aspect_crop)
+            x = load_img(p, args.size, args.preprocess, args.aspect_crop, args.crop_zoom)
             if bright != 1.0 or noise or blur:
                 x = perturb_img(x, bright, noise, blur, base_seed + 100000 + i)
             tests.append(_patch_map(model, mem, x, args, device, dtype))
@@ -565,6 +625,33 @@ def run_category(args, cat, device):
     with open(os.path.join(manifest_dir, f'{cat}.json'), 'w', encoding='utf-8') as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
 
+    # 描述子构造方式：avgpool（历史默认）或 unfold_pool（对齐上游 MeanMapper）
+    EMBED_STATE['mode'] = getattr(args, 'embed_mode', 'avgpool')
+    EMBED_STATE['dim'] = int(getattr(args, 'embed_dim', 1024))
+    if EMBED_STATE['mode'] == 'unfold_pool':
+        print(f"[{cat}] embed mode: unfold_pool -> {EMBED_STATE['dim']} dims")
+    # 0) 可选：在良品 patch 上拟合 PCA（只用训练集），把描述子降到低维再建库
+    PCA_STATE.clear()
+    if getattr(args, 'pca_dim', 0) and not args.neighbors:
+        sample = max(0, int(getattr(args, 'pca_sample', 400)))
+        buf = []
+        with torch.no_grad():
+            for p in train_imgs:
+                feat = model(load_img(p, args.size, args.preprocess, args.aspect_crop, args.crop_zoom).to(device))
+                b = base_desc(feat).squeeze(0).reshape(feat.shape[1], -1).t().cpu()
+                if sample and b.shape[0] > sample:
+                    pick = np.random.RandomState(args.seed * 999 + 7).choice(
+                        b.shape[0], sample, replace=False)
+                    b = b[torch.from_numpy(np.sort(pick))]
+                buf.append(b)
+        xfit = torch.cat(buf, 0)
+        mean, comp = fit_pca(xfit, args.pca_dim, getattr(args, 'pca_whiten', False))
+        PCA_STATE['mean'], PCA_STATE['comp'] = mean, comp
+        print(f'[{cat}] PCA {xfit.shape[1]} -> {comp.shape[1]} dims on {xfit.shape[0]} patches'
+              f' (whiten={bool(getattr(args, "pca_whiten", False))})')
+    elif getattr(args, 'pca_dim', 0):
+        print(f'[{cat}] 注意：--pca-dim 与 --neighbors 不兼容，已忽略')
+
     # 1) 建记忆库
     # 9 邻域有两种选点顺序（--neighbor-coreset）：
     #   base     : 先在 1536 维基础描述子上做 k-center，选完再对选中的 k 个位置补 9 邻域（省内存、名额不被平移副本挤占）
@@ -583,7 +670,7 @@ def run_category(args, cat, device):
         print(f'[{cat}] 注意：--pool-cap 在 base 邻域模式下不生效（需要完整空间网格做展开）')
     with torch.no_grad():
         for ii, p in enumerate(train_imgs):
-            feat = model(load_img(p, args.size, args.preprocess, args.aspect_crop).to(device))
+            feat = model(load_img(p, args.size, args.preprocess, args.aspect_crop, args.crop_zoom).to(device))
             if grid_hw is None:
                 grid_hw = (int(feat.shape[-2]), int(feat.shape[-1]))
             if use_base:
@@ -591,6 +678,8 @@ def run_category(args, cat, device):
             else:
                 emb, _ = embed(feat, args.neighbors, args.neighbor_pad)
                 e = emb.squeeze(0).detach().cpu()
+                if PCA_STATE:
+                    e = apply_pca(e)
                 if quota and e.shape[0] > quota:
                     rs = np.random.RandomState(args.seed * 10007 + ii)
                     pick = np.sort(rs.choice(e.shape[0], size=quota, replace=False))
@@ -635,7 +724,7 @@ def run_category(args, cat, device):
     dump_dtype = np.float32 if getattr(args, 'dump_dtype', 'float16') == 'float32' else np.float16
     cal_px = []
     for i, p in enumerate(score_src):
-        x_cal = load_img(p, args.size, args.preprocess, args.aspect_crop)
+        x_cal = load_img(p, args.size, args.preprocess, args.aspect_crop, args.crop_zoom)
         if args.perturb_calibration:
             x_cal = perturb_img(x_cal, args.perturb_brightness, args.perturb_noise,
                                 args.perturb_blur, args.seed + i)
@@ -664,7 +753,7 @@ def run_category(args, cat, device):
     batch = max(1, int(getattr(args, 'batch', 1)))
     for start in range(0, len(test_imgs), batch):
         chunk = test_imgs[start:start + batch]
-        xs = [perturb_img(load_img(p, args.size, args.preprocess, args.aspect_crop),
+        xs = [perturb_img(load_img(p, args.size, args.preprocess, args.aspect_crop, args.crop_zoom),
                           args.perturb_brightness, args.perturb_noise, args.perturb_blur,
                           args.seed + 100000 + start + j) for j, p in enumerate(chunk)]
         if device.type == 'cuda':
@@ -807,8 +896,10 @@ def main():
     ap.add_argument('--size', type=int, default=256)
     ap.add_argument('--layers', choices=['2+3', '1+2', '1+2+3'], default='2+3',
                     help='特征层组合：2+3（1536 维，/8 网格 40x40）；1+2（768）、1+2+3（1792）统一到 /4 网格 80x80')
-    ap.add_argument('--preprocess', choices=['stretch', 'letterbox'], default='stretch',
+    ap.add_argument('--preprocess', choices=['stretch', 'letterbox', 'crop'], default='stretch',
                     help='resize 策略：stretch=直接拉伸；letterbox=等比缩放+灰边补齐（方图输入时两者等价）')
+    ap.add_argument('--crop-zoom', type=float, default=1.0,
+                    help='\u4ec5 --preprocess crop \u751f\u6548\uff1a\u5148\u628a\u77ed\u8fb9\u7f29\u5230 size*zoom\uff0c\u518d\u4e2d\u5fc3\u88c1\u526a size\uff08\u4e0a\u6e38 366\u2192320 \u5373 1.144\uff09')
     ap.add_argument('--aspect-crop', type=float, default=0.0,
                     help='先中心裁剪成 h/w=该比例再预处理，用于模拟非方形相机（0=不裁）')
     ap.add_argument('--neighbors', action='store_true', help='论文版 9 邻域拼接（显存占用 x9）')
@@ -827,6 +918,17 @@ def main():
     ap.add_argument('--greedy', type=int, default=0, help='k-center 贪心保留 patch 数，0=用随机抽样')
     ap.add_argument('--profile', default='',
                     help='按类覆盖的 JSON（configs/patchcore_profile.json）：只覆盖未显式给出的项')
+    ap.add_argument('--embed-mode', choices=['avgpool', 'unfold_pool'], default='avgpool',
+                    help='patch 描述子：avgpool=历史默认（3x3 均值，1536 维）；'
+                         'unfold_pool=unfold 3x3 后池化到 --embed-dim（对齐上游 MeanMapper）')
+    ap.add_argument('--embed-dim', type=int, default=1024,
+                    help='unfold_pool 模式下的输出维度（默认 1024，与上游一致）')
+    ap.add_argument('--pca-dim', type=int, default=0,
+                    help='在良品 patch 上拟合 PCA 并降到该维度后再建库/打分（0=关闭）；与 --neighbors 不兼容')
+    ap.add_argument('--pca-whiten', action='store_true',
+                    help='PCA 白化（按特征值缩放），改变距离尺度')
+    ap.add_argument('--pca-sample', type=int, default=400,
+                    help='拟合 PCA 时每张训练图最多取多少 patch（默认 400）')
     ap.add_argument('--pool-cap', type=int, default=0,
                     help='候选池上限（patch 总数，0=不限）；640 等大输入建议 150000 以控制内存')
     ap.add_argument('--thr-pct', type=float, default=99.0, help='阈值取训练集分数的百分位，漏检优先就调高')
