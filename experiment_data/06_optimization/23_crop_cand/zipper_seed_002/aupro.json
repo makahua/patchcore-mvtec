@@ -1,0 +1,57 @@
+{
+  "classes": 1,
+  "aupru_macro": 0.916276233179829,
+  "aupru_std": 0.0,
+  "aupru_min": 0.916276233179829,
+  "aupru_max": 0.916276233179829,
+  "worst": [
+    {
+      "category": "zipper",
+      "aupru": 0.916276233179829,
+      "aupru_01": 0.7914754544039909,
+      "pro_at_005": 0.8826455476692644,
+      "pro_at_01": 0.9529886357428003,
+      "pixel_auroc": 0.9692578169254118,
+      "n_regions": 183,
+      "n_images": 151
+    }
+  ],
+  "pooled": {
+    "aupru": 0.916276233179829,
+    "aupru_01": 0.7914754544039909,
+    "pro_at_005": 0.8826455476692644,
+    "pro_at_01": 0.9529886357428003,
+    "n_regions": 183,
+    "n_images": 151
+  },
+  "per_class": [
+    {
+      "category": "zipper",
+      "aupru": 0.916276233179829,
+      "aupru_01": 0.7914754544039909,
+      "pro_at_005": 0.8826455476692644,
+      "pro_at_01": 0.9529886357428003,
+      "pixel_auroc": 0.9692578169254118,
+      "n_regions": 183,
+      "n_images": 151
+    }
+  ],
+  "images": [
+    {
+      "category": "zipper",
+      "images": 151,
+      "missing_masks": 0,
+      "total": 151,
+      "defect_images": 119
+    }
+  ],
+  "protocol": {
+    "metric": "PRO/AUPRO",
+    "fpr_limit": 0.3,
+    "num_th": 200,
+    "connectivity": 4,
+    "weight": "每个 GT 连通域等权（官方口径）",
+    "upsample": "双线性 patch->原图",
+    "dumps": "E:\\面试项目文件夹\\patchcore-mvtec\\experiment_data\\06_optimization\\23_crop_cand\\zipper_seed_002\\pixel_dumps"
+  }
+}

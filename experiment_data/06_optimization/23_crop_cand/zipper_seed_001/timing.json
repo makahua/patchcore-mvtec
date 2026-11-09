@@ -1,0 +1,15 @@
+{
+  "duration_seconds": 171.686,
+  "per_category": [
+    {
+      "category": "zipper",
+      "latency_ms": 20.51,
+      "latency_p95_ms": 21.57,
+      "build_seconds": 147.1,
+      "peak_gpu_mb": 189.6,
+      "peak_cpu_mb": 4247.6,
+      "bank_file": "banks\\zipper.npz"
+    }
+  ],
+  "timing_semantics": "PatchCore native latency fields; consult tools/latency_breakdown.py for end-to-end stage timing."
+}

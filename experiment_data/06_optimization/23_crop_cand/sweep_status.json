@@ -1,0 +1,122 @@
+{
+ "toothbrush_seed_000": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 63.5
+ },
+ "toothbrush_seed_001": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 54.5
+ },
+ "toothbrush_seed_002": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 54.6
+ },
+ "screw_seed_000": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 550.0
+ },
+ "screw_seed_001": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 522.1
+ },
+ "screw_seed_002": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 481.1
+ },
+ "zipper_seed_000": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 176.0
+ },
+ "zipper_seed_001": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 172.8
+ },
+ "zipper_seed_002": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 172.7
+ },
+ "grid_seed_000": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 189.4
+ },
+ "grid_seed_001": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 176.4
+ },
+ "grid_seed_002": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 184.2
+ },
+ "pill_seed_000": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 200.9
+ },
+ "pill_seed_001": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 193.7
+ },
+ "pill_seed_002": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 200.9
+ },
+ "carpet_seed_000": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 215.1
+ },
+ "carpet_seed_001": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 191.5
+ },
+ "carpet_seed_002": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 191.0
+ },
+ "metal_nut_seed_000": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 150.2
+ },
+ "metal_nut_seed_001": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 164.2
+ },
+ "metal_nut_seed_002": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 162.6
+ },
+ "capsule_seed_000": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 339.6
+ },
+ "capsule_seed_001": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 329.0
+ },
+ "capsule_seed_002": {
+  "rc": 0,
+  "aupro_rc": 0,
+  "wall": 314.6
+ }
+}
