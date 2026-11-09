@@ -21,11 +21,11 @@
 
 > **【工业质检】** MVTec AD 少样本无监督缺陷检测（PatchCore）　｜　个人项目　｜　2026.10　｜　代码开源（见 GitHub）
 > - **方法：** WideResNet50 的 layer2/layer3 特征融合出 /8 分辨率 patch 描述子，构建正常样本记忆库，测试时以最近邻距离作为异常分数；用高斯平滑抑制单点噪声，再做 image-level 判定。
-> - **工程：** 用随机抽样 / k-center 贪心两种 coreset 策略控制记忆库规模，把每类约 27 万 patch 压到 2,000（<1%），单张算法段 21.5 ms（RTX 3050 Laptop，15 类均值）、显存 0.19 GB；同预算下比随机抽样更稳（跨类 std 0.039→0.027）且显存少一个量级。
-> - **结果：** MVTec AD 15 类共 1,725 张测试图，image AUROC 0.979（15 类 macro，三 seed 均值 0.9791 ± 0.0010）、pixel AUROC 0.971、图像级 PR-AUC 0.993（0.9928）；自研 OK / 复检 / NG 三档判定（每类阈值由 18–117 张留出良品标定，主口径 P99.5 ≈ 名义过杀 0.5%）：当前测试划分观测到良品直接判废 0.2%、转复核 24.6%、缺陷漏检 16.9%。这些低误报工作点来自小标定集，应作为探索性结果，不表述为产线保证。
+> - **工程：** 用随机抽样 / k-center 贪心两种 coreset 策略控制记忆库规模，把每类约 27 万 patch 压到 2,000（<1%），单张算法段 22.1 ms（RTX 3050 Laptop，15 类均值）、显存 0.19 GB；同预算下比随机抽样更稳（跨类 std 0.039→0.027）且显存少一个量级。
+> - **结果：** MVTec AD 15 类共 1,725 张测试图，image AUROC 0.983（15 类 macro，三 seed 均值 0.9830 ± 0.0008）、pixel AUROC 0.971、图像级 PR-AUC 0.994（0.9941）；自研 OK / 复检 / NG 三档判定（每类阈值由 18–117 张留出良品标定，主口径 P99.5 ≈ 名义过杀 0.5%）：当前测试划分观测到良品直接判废 0.2%、转复核 27.0%、缺陷漏检 12.8%。这些低误报工作点来自小标定集，应作为探索性结果，不表述为产线保证。
 
-（以上为**已跑出的真实版本**，简历里就是用这一版。注意 `0.979` 是 macro 口径，括号不能省——
-省了就和 pooled 0.8799 打架。旧 P99 单 seed 主表是 0.9805 / pooled 0.8812，两套不可相减。）
+（以上为**已跑出的真实版本**，简历里就是用这一版。注意 `0.983` 是 macro 口径，括号不能省——
+省了就和 pooled 0.8564 打架。旧 P99 单 seed 主表是 0.9805 / pooled 0.8812，两套不可相减。）
 
 **版式 B（2 行，版面紧张时）**
 
@@ -91,7 +91,7 @@
 ## 自检与 CI
 
 ```powershell
-python -m pytest tests/ -q        # 有 pytest（23 条）
+python -m pytest tests/ -q        # 有 pytest（35 条）
 python tests/test_metrics.py      # 没 pytest 也能直接跑，纯 numpy，15 条
 python tests/test_pro.py          # PRO/AUPRO 自检，8 条，需 pillow
 ```
@@ -100,7 +100,7 @@ CI 在 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)，每次 push /
 
 | job | 做什么 | 为什么这么设计 |
 |---|---|---|
-| `metrics`（py3.10 + 3.12） | 23 条测试（15 指标/记忆库/成本 + 8 PRO/AUPRO）+ `classify.py report` 冒烟 + `tools/check_readme_numbers.py`（README 数字必须与 90 run 基线一致，钉住 macro `0.9791` / pooled `0.8799`） | **只装 numpy + pytest**，不装 torch——能在十几秒内跑完，且证明「核心指标不依赖深度学习框架」 |
+| `metrics`（py3.10 + 3.12） | 35 条测试（15 指标/记忆库/成本 + 8 PRO/AUPRO + 7 聚合 + 5 记忆库元数据）+ `classify.py report` 冒烟 + `tools/check_readme_numbers.py`（README 数字必须与 90 run 基线一致，钉住 macro `0.9830` / pooled `0.8564`） | **只装 numpy + pytest**，不装 torch——能在十几秒内跑完，且证明「核心指标不依赖深度学习框架」 |
 | `docs` | `tools/check_links.py` 检查所有 md 的相对链接 | README 曾链到不存在的 `experiment_data/README.md`，这种断链只有点进去才发现 |
 
 本地跑不了 pytest 也不影响（开发机的 PyPI 可能被代理挡住）：`python tests/test_metrics.py` 自带运行器，同样 15/15；PRO 那组用 `python tests/test_pro.py`，8/8。

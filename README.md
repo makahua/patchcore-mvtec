@@ -158,7 +158,7 @@ patchcore-mvtec/
   configs/             # 按类覆盖配置（patchcore_profile.json：screw/capsule → 1+2）
   tools/               # pro_aupro / latency_breakdown / conformal_threshold / check_links / 数据准备
   tests/               # 35 条纯 numpy 测试（15 指标+成本、8 PRO/AUPRO、5 bank meta、7 稳健聚合）
-  docs/                # 28 篇方法与实验文档 + pair-baseline.json（主表数字）+ thresholds.json（逐类阈值）
+  docs/                # 29 篇方法与实验文档 + pair-baseline.json（主表数字）+ thresholds.json（逐类阈值）
   experiment_data/     # 结果索引（大文件由 .gitignore 排除）
 ```
 
