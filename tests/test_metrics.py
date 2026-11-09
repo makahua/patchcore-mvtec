@@ -162,6 +162,7 @@ def test_triage_grid_gray_zone_moves_images_out_of_ng():
     tests = _mk([5.0, 3.0, 1.0, 0.5], [0, 1, 1, 0])
     narrow = triage_grid(calib, tests, (0.2,), (1.5,))[0]
     wide = triage_grid(calib, tests, (0.2,), (2.0,))[0]
+    assert narrow['fa'] >= wide['fa']
     assert wide['fa'] == 0
     assert wide['revg'] == 1 and wide['revd'] == 0
 

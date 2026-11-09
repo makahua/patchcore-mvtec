@@ -24,7 +24,6 @@ import io
 import json
 import os
 import queue
-import statistics
 import sys
 import threading
 import time

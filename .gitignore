@@ -56,3 +56,7 @@ experiment_data/06_optimization/13_demo/
 # pytest / 沙箱留下的权限异常临时目录（本机删不掉，至少别进仓库）
 pytest-cache-files-*/
 .tmp_testdir/
+
+# 构建产物
+/build/
+*.egg-info/

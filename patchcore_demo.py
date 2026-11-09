@@ -11,22 +11,18 @@
 
 产出：results/results.csv、results/<类别>_summary.json、results/heatmaps/
 """
-import argparse, csv, json, os, random, time
+import argparse, csv, json, os, time
 import numpy as np
 from PIL import Image
 import torch
-import torch.nn.functional as F
-from torchvision.models import wide_resnet50_2, Wide_ResNet50_2_Weights
 
 
-from patchcore import calibration as CAL
 from patchcore import features as FE
-from patchcore.calibration import SUITE_CONDITIONS, dump_suite, mask_for, peak_ws_mb
+from patchcore.calibration import dump_suite, mask_for, peak_ws_mb
 from patchcore.coreset import corset_random, coreset_greedy, coreset_projected_greedy, expand_selected
-from patchcore.features import EMBED_STATE, PCA_STATE, Features, apply_pca, base_desc, embed, fit_pca
-from patchcore.imaging import (IMG_EXTS, MEAN, STD, list_images, load_img, load_mask,
-                               perturb_img, rel_path)
-from patchcore.scoring import auc, gaussian_blur, patch_scores, patch_scores_batch, score_from_feat
+from patchcore.features import Features, apply_pca, base_desc, embed, fit_pca
+from patchcore.imaging import (list_images, load_img, perturb_img, rel_path)
+from patchcore.scoring import auc, patch_scores, patch_scores_batch
 
 
 
@@ -489,6 +485,9 @@ def main():
         ap.error('--blur-sigma 必须大于或等于 0')
     if args.perturb_brightness <= 0 or args.perturb_noise < 0 or args.perturb_blur < 0:
         ap.error('亮度必须大于 0，噪声和模糊强度必须大于或等于 0')
+    if args.calib_ratio <= 0 and args.thr_pct >= 99:
+        print('[warn] --calib-ratio 0 且 --thr-pct >= 99：阈值会用建库图自评分，'
+              '存在自匹配偏差（历史上这一口径误报 28%）；产线配置请用 --calib-ratio 0.3')
 
     if not torch.cuda.is_available():
         device = torch.device('cpu')

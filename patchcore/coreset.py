@@ -2,7 +2,6 @@
 """coreset 采样：随机、贪心与近似贪心（从 patchcore_demo.py 拆出）。"""
 import numpy as np
 import torch
-import torch.nn.functional as F
 
 def corset_random(feats, ratio, seed=0, return_idx=False):
     n = feats.shape[0]

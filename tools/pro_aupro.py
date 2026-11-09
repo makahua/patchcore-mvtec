@@ -1,4 +1,4 @@
-﻿"""PRO / AUPRO（per-region overlap）评测工具。
+"""PRO / AUPRO（per-region overlap）评测工具。
 
 PRO（Per-Region Overlap）是 MVTec 官方在 PatchCore / PaDiM 里报的区域级指标：
 把 GT 掩码按连通域切成若干区域，统计阈值 t 下每个区域被"命中"的像素比例，对所有区域取平均；

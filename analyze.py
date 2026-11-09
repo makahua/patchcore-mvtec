@@ -68,7 +68,7 @@ def show(tag, rows):
     print(f"| **平均（macro）** | **{m('img'):.4f} ± {sd('img'):.4f}** | **{m('px'):.4f} ± {sd('px'):.4f}** | "
           f"**{m('pr'):.3f}** | **{m('r15'):.1%}** | **{m('r05'):.1%}** | {m('f05'):.1%} | {m('ms'):.1f} | {m('mem'):.0f} |")
     worst = sorted(rows, key=lambda r: r['img'])[:3]
-    print(f"最低三类： " + "、".join(f"{r['cat']} {r['img']:.3f}" for r in worst))
+    print("最低三类： " + "、".join(f"{r['cat']} {r['img']:.3f}" for r in worst))
 
     # ---- 同一批分数换一种口径：把所有类的图混在一起算一次（pooled）----
     # macro 每类权重相同；pooled 每张图权重相同，缺陷图多的难类（screw/capsule）会拉低它。

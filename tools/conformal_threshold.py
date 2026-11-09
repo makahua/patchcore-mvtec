@@ -104,7 +104,7 @@ def main():
         raise SystemExit(f'{a.scores} 下没有 scores/*.json')
 
     print(f'目标 alpha = {a.alpha:.2%} | 所需最少 calib = {n_for_alpha(a.alpha)} 张 | conf = {a.conf:.0%}')
-    print(f'备注：alpha 每降一档，所需 calib 约翻倍（0.5%→199，0.2%→499）。\n')
+    print('备注：alpha 每降一档，所需 calib 约翻倍（0.5%→199，0.2%→499）。\n')
 
     rows = []
     skipped = []

@@ -12,7 +12,6 @@ import argparse
 import csv
 import hashlib
 import json
-import os
 import platform
 import subprocess
 import sys

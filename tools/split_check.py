@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """对比两个 split-seed 下的基线（2+3 / legacy greedy 2000 / P99.5）。
 
 用法：
@@ -9,7 +9,6 @@ import glob
 import json
 import os
 import statistics as st
-import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

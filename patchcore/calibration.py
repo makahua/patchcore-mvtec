@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 """标定/评测辅助：进程峰值内存、掩码、像素 dump（从 patchcore_demo.py 拆出）。"""
-import ctypes
 import os
 
 import numpy as np
-import torch
 from PIL import Image
 
-from .imaging import load_img, load_mask
+from .imaging import load_img, load_mask, perturb_img, rel_path
 from .scoring import patch_scores
 
 def peak_ws_mb():

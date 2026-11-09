@@ -7,7 +7,6 @@ import time
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -49,7 +48,6 @@ def main():
     weights = os.path.join(ROOT, 'torch_cache', 'wide_resnet50_2_timm.pth')
     print('weights:', os.path.getsize(weights), 'bytes')
 
-    x32 = torch.randn(1, 3, 320, 320, device=DEV)
     model = build_model(weights)
 
     # ---- 1) forward at several batch sizes (fp32) ----

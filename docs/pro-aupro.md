@@ -43,6 +43,8 @@ PaDiM 都以 AUPRO 作为区域级主指标，也是本项目的竞品/论文对
 
 ## 3. 结果（15 类，320 / greedy 2000 / calib 0.3 / P99 / timm WR50）
 
+> **口径**：本节是 2026-11 早期的 **P99 单 seed** 快照（当时主表 0.9805 / pooled 0.8812）。当前主表是 P99.5、三 seed、screw/capsule 走 `1+2`（见 README 与 `docs/pair-baseline.json`），两套数字不可相减。
+
 按 AUPRO@30% 升序：
 
 | 类别 | image AUROC | pixel AUROC | AUPRO@30% | AUPRO@10% | PRO@5%FPR | 区域数 | 测试图 |

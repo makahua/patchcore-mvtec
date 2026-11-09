@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from .features import EMBED_STATE, PCA_STATE, apply_pca, base_desc, embed
+from .features import apply_pca, embed
 
 def gaussian_blur(x, k=5, sigma=2.0):
     """对 patch 分数图做高斯平滑（PatchCore 用它抑制单点噪声）。"""

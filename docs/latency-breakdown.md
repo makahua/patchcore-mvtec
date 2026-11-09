@@ -2,7 +2,7 @@
 
 > 复核日期 2026-11-04　｜　脚本 `tools/latency_breakdown.py`　｜　原始数据 `experiment_data/05_indexes/latency_bottle.json`
 >
-> 结论先说：**README 里的 19.7 ms 只是 GPU 计算段，端到端是 35.5 ms（1.8×）**。最大单项不是模型，是 **PNG 解码（13.0 ms，36.7%）**。
+> 结论先说：**当时 README 记录的 19.7 ms 只是 GPU 计算段（旧 P99 单 seed 口径；现主表算法段 22.1 ms），端到端是 35.5 ms（1.8×）**。最大单项不是模型，是 **PNG 解码（13.0 ms，36.7%）**。
 
 ## 1. 为什么要拆
 
