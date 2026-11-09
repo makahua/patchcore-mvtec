@@ -34,7 +34,7 @@
 | `1+2` | layer2 双线性上采样到 layer1 的 /4 网格后拼接 | 768 | 80×80 | 6400 | **4×** |
 | `1+2+3` | layer2、layer3 都上采样到 /4 后与 layer1 拼接 | 1792 | 80×80 | 6400 | 4× 且更宽 |
 
-**口径更正。** 第一版把 layer1 用 `avg_pool2d(2,2)` 降到 /8，等于只做通道拼接、把新增低层的空间分辨率丢掉；那两次试跑（`_invalid_layer1_downsampled/`）只作调试记录，**不计入任何结论**。现行实现保持 layer1 原网格，符合"加低层必须付出 4 倍 patch 代价"的对照本意。
+**口径更正。** 第一版把 layer1 用 `avg_pool2d(2,2)` 降到 /8，等于只做通道拼接、把新增低层的空间分辨率丢掉；那两次试跑（现位于 `experiment_data/06_optimization/_evidence/03_features_invalid_layer1_downsampled/`）只作调试记录，**不计入任何结论**。现行实现保持 layer1 原网格，符合"加低层必须付出 4 倍 patch 代价"的对照本意。
 
 ## 4. 结果（均值，n 为 seed 数）
 
@@ -74,7 +74,7 @@
 - `1+2+3 / screw / seed1`：同配置启动后可用物理内存只剩 2.4 GB（页文件 35.9 GB），16 小时墙钟只累计 3503 s CPU，`run.log` 无任何进度行，人工终止。这是**内存换页 thrash**，不是数值或代码问题（同配置 seed0 已完成）。
 - `1+2+3 / screw / seed2`、`1+2+3 / pill / seed0-2`：候选池 9.6 GB / 11.4 GB，在本机（物理 15.9 GB）没有安全余量，**未运行**，记 `not_run_resource`；不把它们当作"精度更差"的证据。
 - `1+2+3 / toothbrush` 三个 seed 都跑通（池子仅 1.9 GB，176–186 s/run）。
-- 失败的尝试与状态都留在 `sweep_status.json` 与 `_aborted/` 里（含被 argparse 拒绝的 7 个 `1+23` 目录，是驱动脚本拼参数的低级 bug，已修，不计入数据）。
+- 失败的尝试与状态都留在 `sweep_status.json` 与 `_evidence/03_features_aborted/` 里（含被 argparse 拒绝的 7 个 `1+23` 目录，是驱动脚本拼参数的低级 bug，已修，不计入数据）。
 
 ## 7. 结论与建议
 
