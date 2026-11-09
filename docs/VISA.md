@@ -25,7 +25,7 @@ tar.exe -xf VisA_20220922.tar -C VisA_raw
   --split-type 1cls `
   --data-folder VisA_raw `
   --save-folder VisA_pytorch `
-  --split-file tools\visa_1cls.csv
+  --split-file docs\samples\visa_1cls.csv
 ```
 
 输出根目录为 `VisA_pytorch\1cls`，下面按类别提供 `train\good`、`test\good`、`test\bad` 和 `ground_truth\bad`。项目评测代码已兼容 VisA 的 `<stem>.png` mask 命名。

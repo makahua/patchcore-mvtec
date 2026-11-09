@@ -24,7 +24,7 @@ pip install numpy pillow matplotlib tqdm
 > 需要 torch 的只有 `build / infer / eval` 三个子命令和 `patchcore_demo.py` 本身。
 
 > **权重不走 torchvision 的自动下载。** 本机 `download.pytorch.org` 不通（TLS 直接断），实际做法是从
-> hf-mirror 下 timm 的 `wide_resnet50_2.racm_in1k`（275 MB safetensors）再转成 state_dict，见第 3 步。
+> hf-mirror 下 timm 的 `wide_resnet50_2.racm_in1k`（275 MB safetensors）再转成 state_dict（转换脚本 `tools/safetensors_to_pth.py`，纯 numpy，不依赖 safetensors 包），见第 3 步。
 > 只有在**省略** `--weights` 时，脚本才回退到 torchvision 自带的 `IMAGENET1K_V1` 自动下载。
 > 想换缓存目录就设 `TORCH_HOME`（本机放在 `E:\torch_cache`；注意本机没有 D 盘）。
 
