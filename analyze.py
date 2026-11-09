@@ -7,21 +7,9 @@ import csv, glob, json, os, sys
 import numpy as np
 
 
-def auc(y, s):
-    y = np.asarray(y).astype(np.int64); s = np.asarray(s, dtype=np.float64)
-    order = np.argsort(s); ranks = np.empty(len(s)); ranks[order] = np.arange(1, len(s) + 1)
-    _, inv, cnt = np.unique(s, return_inverse=True, return_counts=True)
-    sums = np.bincount(inv, weights=ranks); ranks = (sums / cnt)[inv]
-    npos = int((y == 1).sum()); nneg = int((y == 0).sum())
-    if npos == 0 or nneg == 0: return float('nan')
-    return float((ranks[y == 1].sum() - npos * (npos + 1) / 2) / (npos * nneg))
+from patchcore.metrics import auprc, auc  # noqa: F401  （唯一实现见 patchcore/metrics.py）
 
 
-def auprc(y, s):
-    order = np.argsort(-np.asarray(s, dtype=np.float64)); yy = np.asarray(y)[order]
-    tp = np.cumsum(yy); npos = max(1, int(yy.sum()))
-    prec = tp / np.arange(1, len(yy) + 1); rec = tp / npos
-    return float(np.sum(np.diff(np.concatenate([[0.0], rec])) * prec))
 
 
 def load(d):

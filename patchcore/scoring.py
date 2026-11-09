@@ -17,22 +17,7 @@ def gaussian_blur(x, k=5, sigma=2.0):
     return x.squeeze(0).squeeze(0)
 
 
-def auc(y_true, y_score):
-    """rank 法 AUROC，避免依赖 sklearn。"""
-    y_true = np.asarray(y_true).astype(np.int64)
-    s = np.asarray(y_score, dtype=np.float64)
-    order = np.argsort(s)
-    ranks = np.empty(len(s), dtype=np.float64)
-    ranks[order] = np.arange(1, len(s) + 1)
-    # 处理并列
-    _, inv, cnt = np.unique(s, return_inverse=True, return_counts=True)
-    sums = np.bincount(inv, weights=ranks)
-    ranks = (sums / cnt)[inv]
-    n_pos = int((y_true == 1).sum())
-    n_neg = int((y_true == 0).sum())
-    if n_pos == 0 or n_neg == 0:
-        return float('nan')
-    return float((ranks[y_true == 1].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
+from .metrics import auc  # noqa: F401  （唯一实现见 patchcore/metrics.py）
 
 
 

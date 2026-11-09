@@ -13,6 +13,7 @@ import argparse
 import glob
 import json
 import os
+import sys
 import time
 
 import numpy as np
@@ -124,18 +125,9 @@ def scores_for(model, bank, paths, tf, device, has_label=None):
     return scores, labels
 
 
-def auc(scores, labels):
-    scores = np.asarray(scores, dtype=np.float64)
-    labels = np.asarray(labels, dtype=np.int64)
-    pos = scores[labels == 1]
-    neg = scores[labels == 0]
-    if len(pos) == 0 or len(neg) == 0:
-        return float('nan')
-    order = np.argsort(np.concatenate([neg, pos]))
-    ranks = np.empty(len(order), dtype=np.float64)
-    ranks[order] = np.arange(1, len(order) + 1)
-    r_pos = ranks[len(neg):]
-    return float((r_pos.mean() - (len(pos) + 1) / 2.0) / len(neg))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+from patchcore.metrics import auc  # noqa: E402,F401
 
 
 def main():

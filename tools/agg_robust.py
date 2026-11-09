@@ -63,20 +63,9 @@ def agg_all(maps, modes=MODES):
     return out
 
 
-def auc(y, s):
-    """图像级 AUROC（秩和法，处理并列）。"""
-    y = np.asarray(y).astype(np.int64)
-    s = np.asarray(s, dtype=np.float64)
-    order = np.argsort(s)
-    ranks = np.empty(len(s), dtype=np.float64)
-    ranks[order] = np.arange(1, len(s) + 1)
-    _, inv, cnt = np.unique(s, return_inverse=True, return_counts=True)
-    ranks = (np.bincount(inv, weights=ranks) / cnt)[inv]
-    npos = int((y == 1).sum())
-    nneg = int((y == 0).sum())
-    if npos == 0 or nneg == 0:
-        return float('nan')
-    return float((ranks[y == 1].sum() - npos * (npos + 1) / 2) / (npos * nneg))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+from patchcore.metrics import auc  # noqa: E402,F401
 
 
 def threshold_of(calib_scores, fpr):

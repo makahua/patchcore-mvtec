@@ -37,25 +37,18 @@ def read_json(path):
         return json.load(f)
 
 
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+from patchcore.metrics import auc as _auc_impl  # noqa: E402
+
+
 def auroc(scores, labels):
-    scores = np.asarray(scores, dtype=np.float64)
-    labels = np.asarray(labels, dtype=np.int64)
-    pos = labels == 1
-    n_pos = int(pos.sum())
-    n_neg = int((~pos).sum())
-    if n_pos == 0 or n_neg == 0:
-        return None
-    order = np.argsort(scores, kind='mergesort')
-    ranks = np.empty(len(scores), dtype=np.float64)
-    sorted_scores = scores[order]
-    i, n = 0, len(scores)
-    while i < n:
-        j = i
-        while j + 1 < n and sorted_scores[j + 1] == sorted_scores[i]:
-            j += 1
-        ranks[order[i:j + 1]] = (i + j) / 2.0 + 1.0
-        i = j + 1
-    return float((ranks[pos].sum() - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
+    """AUROC（scores 在前）；退化为单类时返回 None（沿用原约定）。"""
+    v = _auc_impl(labels, scores)
+    return None if v != v else v
 
 
 def load_test(root, rel):

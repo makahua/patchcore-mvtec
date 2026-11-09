@@ -25,26 +25,11 @@ def cat_of(path):
     return body.rsplit("_seed_", 1)[0]
 
 
-def auc(scores, labels):
-    scores = np.asarray(scores, dtype=np.float64)
-    labels = np.asarray(labels, dtype=np.int64)
-    pos = labels == 1
-    neg = labels == 0
-    if pos.sum() == 0 or neg.sum() == 0:
-        return float("nan")
-    order = np.argsort(scores, kind="mergesort")
-    s = scores[order]
-    ranks = np.empty(len(s), dtype=np.float64)
-    i = 0
-    while i < len(s):
-        j = i
-        while j + 1 < len(s) and s[j + 1] == s[i]:
-            j += 1
-        ranks[order[i:j + 1]] = 0.5 * (i + j) + 1.0
-        i = j + 1
-    n1 = int(pos.sum())
-    n0 = int(neg.sum())
-    return float((ranks[pos].sum() - n1 * (n1 + 1) / 2.0) / (n1 * n0))
+import sys
+
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+from patchcore.metrics import auc  # noqa: E402,F401
 
 
 def agg(mode, patches):

@@ -32,24 +32,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def auc(y_true, y_score):
-    """rank 法 AUROC（含并列处理），与 patchcore_demo.auc 逐位一致。
-
-    这里复制一份而不是 import，是为了让 report 子命令在**没装 torch 的机器**上也能跑：
-    验证三档表只需要 numpy，不该为了复算一个数去装 2 GB 的 PyTorch。
-    """
-    y = np.asarray(y_true).astype(np.int64)
-    s = np.asarray(y_score, dtype=np.float64)
-    order = np.argsort(s)
-    ranks = np.empty(len(s), dtype=np.float64)
-    ranks[order] = np.arange(1, len(s) + 1)
-    _, inv, cnt = np.unique(s, return_inverse=True, return_counts=True)
-    ranks = (np.bincount(inv, weights=ranks) / cnt)[inv]
-    n_pos = int((y == 1).sum())
-    n_neg = int((y == 0).sum())
-    if n_pos == 0 or n_neg == 0:
-        return float('nan')
-    return float((ranks[y == 1].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
+from patchcore.metrics import auc  # noqa: F401  （唯一实现见 patchcore/metrics.py）
 
 
 # torch / PIL / patchcore_demo 只在 build / infer / eval 里用，report 不需要 —— 延迟到真正用到时再导入。
