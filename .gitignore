@@ -60,3 +60,6 @@ pytest-cache-files-*/
 # 构建产物
 /build/
 *.egg-info/
+
+# 桌面演示的运行日志
+logs/
